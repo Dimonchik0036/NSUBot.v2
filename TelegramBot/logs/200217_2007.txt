@@ -1,0 +1,19 @@
+2017/02/20 20:08:08 17-Feb-2017 09:22
+2017/02/20 20:09:08 Не вышло.
+2017/02/20 20:09:08 20-Feb-2017 10:27
+2017/02/20 20:09:08 Бот dimonchik0036_bot запущен.
+2017/02/20 20:10:16 [250493282] Yulia Krasnik (@): /help
+2017/02/20 20:10:24 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 20:10:28 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/20 20:10:43 [227605930] Dmitry Gridin (@Dimonchik0036): /setgroup 16208.1
+2017/02/20 20:10:45 [250493282] Yulia Krasnik (@): /setgroup
+2017/02/20 20:10:46 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 20:10:59 [227605930] Dmitry Gridin (@Dimonchik0036): /setgroup 16211.1
+2017/02/20 20:11:02 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/20 20:11:07 [250493282] Yulia Krasnik (@): /tomorrow 16211.1
+2017/02/20 20:11:53 [227605930] Dmitry Gridin (@Dimonchik0036): /users all
+2017/02/20 20:12:09 [227605930] Dmitry Gridin (@Dimonchik0036): /today 16211.1
+2017/02/20 20:12:26 [227605930] Dmitry Gridin (@Dimonchik0036): /today 16200
+2017/02/20 20:12:39 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/20 20:12:51 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/20 20:13:15 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow

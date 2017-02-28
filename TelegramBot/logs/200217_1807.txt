@@ -1,0 +1,11 @@
+2017/02/20 18:07:37 17-Feb-2017 09:22
+2017/02/20 18:08:08 20-Feb-2017 10:27
+2017/02/20 18:08:08 Бот dimonchik0036_bot запущен.
+2017/02/20 18:09:00 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/20 18:09:08 [227605930] Dmitry Gridin (@Dimonchik0036): /today 16211.1
+2017/02/20 18:09:29 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow 16211.1
+2017/02/20 18:12:03 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 18:12:06 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/20 18:15:03 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/20 18:19:27 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 18:19:38 [227605930] Dmitry Gridin (@Dimonchik0036): /today 16211.1

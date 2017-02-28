@@ -1,0 +1,140 @@
+2017/02/15 23:05:09 Бот dimonchik0036_bot запущен.
+2017/02/15 23:06:27 [227605930] Dmitry Gridin (@Dimonchik0036): /start
+2017/02/15 23:06:31 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/15 23:06:38 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/15 23:08:28 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/15 23:13:39 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/15 23:13:52 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/15 23:16:48 [227605930] Dmitry Gridin (@Dimonchik0036): /user
+2017/02/15 23:16:53 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/15 23:16:56 [227605930] Dmitry Gridin (@Dimonchik0036): /users all
+2017/02/16 01:34:34 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 01:34:46 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/16 02:02:17 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 02:08:12 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/16 02:08:37 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/16 02:08:39 [227605930] Dmitry Gridin (@Dimonchik0036): /groups
+2017/02/16 02:08:43 [227605930] Dmitry Gridin (@Dimonchik0036): /setmessage
+2017/02/16 02:08:43 Обновлена строка температуры на: 
+2017/02/16 02:08:54 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 02:08:54 Command:Bad Request
+2017/02/16 02:09:24 [227605930] Dmitry Gridin (@Dimonchik0036): /setmessage Всё равно никто не увидит
+2017/02/16 02:09:24 Обновлена строка температуры на: Всё равно никто не увидит
+2017/02/16 02:09:26 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 02:09:33 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 02:09:36 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 02:09:41 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 02:09:46 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 07:39:33 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 09:06:16 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 09:07:01 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/16 09:07:09 [227605930] Dmitry Gridin (@Dimonchik0036): /users all
+2017/02/16 09:07:29 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/16 09:40:05 [250493282] Yulia Krasnik (@): /weather
+2017/02/16 10:09:46 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/16 10:10:06 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog log
+2017/02/16 10:13:57 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 10:14:02 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/16 12:58:49 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/16 12:58:51 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 13:31:23 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 17:21:13 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/16 19:28:15 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 21:14:28 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 21:15:07 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/16 21:15:26 [227605930] Dmitry Gridin (@Dimonchik0036): /setmessage
+2017/02/16 21:15:26 Обновлена строка температуры на: 
+2017/02/16 21:16:16 [227605930] Dmitry Gridin (@Dimonchik0036): /setmessage  Руслан лалка
+2017/02/16 21:16:16 Обновлена строка температуры на:  Руслан лалка
+2017/02/16 21:16:26 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:16:48 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:16:50 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:16:52 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:16:53 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:16:54 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:16:55 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:17:32 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/16 21:17:48 [221524772] Павел Тырышкин (@): /help
+2017/02/16 21:17:55 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:18:05 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/16 21:19:18 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog log
+2017/02/16 21:21:13 [221524772] Павел Тырышкин (@): /weather
+2017/02/16 21:21:55 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 21:37:58 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 22:40:49 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 22:41:02 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/16 22:46:21 [227605930] Dmitry Gridin (@Dimonchik0036): /start
+2017/02/16 22:46:41 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 22:50:39 [215065513] Роман Терехов (@): /start
+2017/02/16 22:50:47 [215065513] Роман Терехов (@): /weather
+2017/02/16 22:51:35 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/16 22:51:46 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/16 22:52:19 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/16 22:52:26 [250493282] Yulia Krasnik (@): /weather
+2017/02/16 22:52:44 [227605930] Dmitry Gridin (@Dimonchik0036): /users all
+2017/02/16 22:53:19 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 22:54:46 [270519216] Человек-полторашка  (@therrer): /start
+2017/02/16 22:54:50 [270519216] Человек-полторашка  (@therrer): /weather
+2017/02/16 22:55:57 [245647624] Ksu Pecherskikh (@): /start
+2017/02/16 22:56:08 [245647624] Ksu Pecherskikh (@): /weather
+2017/02/16 22:59:39 [70167980] Eba⚡️⚡️osina  (@mefbus): /start
+2017/02/16 22:59:42 [70167980] Eba⚡️⚡️osina  (@mefbus): /weather
+2017/02/16 23:00:06 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/16 23:00:17 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmedata data
+2017/02/16 23:00:28 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/16 23:28:48 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/16 23:28:59 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/17 00:38:26 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/17 01:17:46 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 01:17:56 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 01:18:02 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 07:35:35 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 08:01:04 [221524772] Павел Тырышкин (@): /weather
+2017/02/17 08:01:12 [221524772] Павел Тырышкин (@): /weather
+2017/02/17 08:30:22 [70167980] Eba⚡️⚡️osina  (@mefbus): /weather
+2017/02/17 08:31:41 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 08:51:35 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/17 09:56:20 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 10:42:51 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 10:43:07 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/17 11:36:49 [221524772] Павел Тырышкин (@): /weather
+2017/02/17 11:57:23 [221524772] Павел Тырышкин (@): /weather
+2017/02/17 12:20:53 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 12:38:08 [221524772] Павел Тырышкин (@): /weather
+2017/02/17 14:35:49 [200874470] Paul Kholyavko (@MrAkakuy): /start
+2017/02/17 14:35:59 [200874470] Paul Kholyavko (@MrAkakuy): /weather
+2017/02/17 15:53:14 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/17 15:53:22 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/17 16:35:33 [270519216] Человек-полторашка  (@therrer): /weather
+2017/02/17 18:13:39 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/17 18:14:01 [227605930] Dmitry Gridin (@Dimonchik0036): /users all
+2017/02/17 20:59:57 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/18 08:10:42 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/18 09:57:21 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/18 09:57:42 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/18 09:57:48 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/18 09:57:53 [227605930] Dmitry Gridin (@Dimonchik0036): /groups
+2017/02/18 09:58:28 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/18 11:45:16 [221524772] Павел Тырышкин (@): /weather
+2017/02/18 13:27:40 [221524772] Павел Тырышкин (@): /weather
+2017/02/18 13:32:03 [221524772] Павел Тырышкин (@): Дима лалка
+2017/02/18 13:32:43 [221524772] Павел Тырышкин (@): Че логи палишь? А?
+2017/02/18 15:03:53 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/18 17:26:10 [270519216] Человек-полторашка  (@therrer): /weather
+2017/02/18 20:24:42 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/18 20:32:27 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/19 00:12:48 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/19 08:09:19 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/19 09:19:43 [227605930] Dmitry Gridin (@Dimonchik0036): Dmitry Gridin:
+Кек, сейчас в автобус зашли 3 чувака с походными сумарями, один без вопросов заплатили за него, второй пытался выпросить, чтобы не платить, но заплатил, а третий вообще начал такое, типо "а где сказано, что "за такую" сумку платить?" В итоге носился по салону с рулеткой и мерил свою сумку
+2017/02/19 09:19:46 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/19 10:27:19 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/19 11:04:37 [221524772] Павел Тырышкин (@): /weather
+2017/02/19 11:04:45 [221524772] Павел Тырышкин (@): /help
+2017/02/19 12:58:44 [221524772] Павел Тырышкин (@): /weather
+2017/02/19 14:19:09 [200874470] Paul Kholyavko (@MrAkakuy): /we
+2017/02/19 14:19:14 [200874470] Paul Kholyavko (@MrAkakuy): /weather
+2017/02/19 16:07:11 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/19 17:44:54 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/19 18:04:02 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/19 18:04:11 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data

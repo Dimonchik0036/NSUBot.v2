@@ -1,0 +1,76 @@
+2017/02/20 20:18:27 17-Feb-2017 09:22
+2017/02/20 20:18:58 20-Feb-2017 10:27
+2017/02/20 20:18:58 Бот dimonchik0036_bot запущен.
+2017/02/20 20:20:03 [227605930] Dmitry Gridin (@Dimonchik0036): Молодец
+2017/02/20 20:20:05 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/20 20:20:11 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 20:20:18 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/20 20:20:33 [227605930] Dmitry Gridin (@Dimonchik0036): /today 14808.1
+2017/02/20 20:20:40 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/20 20:24:34 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/20 20:24:42 [227605930] Dmitry Gridin (@Dimonchik0036): /users all
+2017/02/20 20:24:54 [227605930] Dmitry Gridin (@Dimonchik0036): /groups all
+2017/02/20 20:25:05 [227605930] Dmitry Gridin (@Dimonchik0036): /users
+2017/02/20 20:25:13 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 20:44:20 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 20:49:14 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 20:49:23 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/20 21:11:01 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/20 21:57:19 [221524772] Павел Тырышкин (@): /help
+2017/02/20 21:57:34 [221524772] Павел Тырышкин (@): /setgroup
+2017/02/20 21:57:55 [221524772] Павел Тырышкин (@): /setgroup 16361.1
+2017/02/20 21:57:57 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/20 21:57:59 [221524772] Павел Тырышкин (@): /today
+2017/02/20 21:58:07 [221524772] Павел Тырышкин (@): /tomorrow
+2017/02/20 22:01:13 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/20 22:01:27 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/20 22:07:46 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/20 22:43:49 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/20 22:44:14 [227605930] Dmitry Gridin (@Dimonchik0036): /start
+2017/02/20 23:12:49 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/20 23:16:12 [215065513] Роман Терехов (@): /setgroup
+2017/02/20 23:16:17 [215065513] Роман Терехов (@): /setgroup
+2017/02/20 23:16:37 [215065513] Роман Терехов (@): /setgroup 16207
+2017/02/20 23:16:41 [215065513] Роман Терехов (@): /today
+2017/02/20 23:16:50 [215065513] Роман Терехов (@): /tomorrow
+2017/02/20 23:17:18 [215065513] Роман Терехов (@): /setgroup 16207_1
+2017/02/20 23:17:21 [215065513] Роман Терехов (@): /weather
+2017/02/20 23:17:24 [215065513] Роман Терехов (@): /today
+2017/02/20 23:17:26 [215065513] Роман Терехов (@): /help
+2017/02/20 23:17:52 [215065513] Роман Терехов (@): /setgroup 16207.1
+2017/02/20 23:17:55 [215065513] Роман Терехов (@): /today
+2017/02/20 23:18:05 [215065513] Роман Терехов (@): /tomorrow
+2017/02/20 23:19:32 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/20 23:25:28 [227605930] Dmitry Gridin (@Dimonchik0036): /help
+2017/02/20 23:42:44 [215065513] Роман Терехов (@): /today
+2017/02/20 23:42:51 [215065513] Роман Терехов (@): /weather
+2017/02/20 23:42:56 [215065513] Роман Терехов (@): /tomorrow
+2017/02/20 23:59:28 [215065513] Роман Терехов (@): /weather
+2017/02/20 23:59:34 [215065513] Роман Терехов (@): /tomorrow
+2017/02/20 23:59:42 [215065513] Роман Терехов (@): /setgroup
+2017/02/21 00:02:52 [61219035] Bany Rule (@banyrule): /tomorrow
+2017/02/21 00:03:23 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/21 00:03:30 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/21 00:05:59 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/21 00:29:48 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/21 00:52:11 [250493282] Yulia Krasnik (@): /today
+2017/02/21 00:52:18 [250493282] Yulia Krasnik (@): /setgroup
+2017/02/21 00:53:02 [250493282] Yulia Krasnik (@): /setgroup16211.1
+2017/02/21 00:53:24 [250493282] Yulia Krasnik (@): /setgroup 16211.1
+2017/02/21 00:53:35 [250493282] Yulia Krasnik (@): /today
+2017/02/21 03:00:22 Не удалось загрузить страницу:Get http://www.nsu.ru/education/schedule/Html_GK/Groups/: dial tcp 84.237.50.25:80: getsockopt: connection refused
+2017/02/21 07:41:02 Ошибка чтения страницы:EOF
+2017/02/21 08:10:02 [245647624] Ksu Pecherskikh (@): /weather
+2017/02/21 08:23:12 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
+2017/02/21 08:23:21 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/21 08:24:10 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/21 09:40:33 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/21 09:42:59 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/21 10:43:20 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/21 11:00:27 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/21 11:00:46 [227605930] Dmitry Gridin (@Dimonchik0036): /today
+2017/02/21 11:01:42 [227605930] Dmitry Gridin (@Dimonchik0036): /tomorrow
+2017/02/21 11:32:31 21-Feb-2017 04:31
+2017/02/21 11:46:12 [200874470] Paul Kholyavko (@MrAkakuy): /weather
+2017/02/21 13:08:48 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
+2017/02/21 13:09:24 [227605930] Dmitry Gridin (@Dimonchik0036): /today
