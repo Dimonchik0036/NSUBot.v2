@@ -1,6 +1,7 @@
 package main
 
 import (
+	"TelegramBot/loader"
 	"TelegramBot/weather"
 	"errors"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -28,63 +28,13 @@ var gkDate string
 var lkDate string
 
 var weatherText string = "Погода временно недоступна, попробуйте чуть позднее."
-var logFileName = "logUsers.txt"
+var logFileName string
 var timeToStart string
-var logger *log.Logger
-var loggerAll *log.Logger
+var logUsers *log.Logger
+var logAll *log.Logger
 
 const myId = 227605930
 const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
-
-func reviewUserGroup() error {
-	userGroup[myId] = "16211.1"
-	userGroup[221524772] = "16361.1" //Паша Тырышкин
-	userGroup[215065513] = "16207.1" //Рома Терехов
-	userGroup[61219035] = "16209.1"  //Женя Макрушин
-	userGroup[250493282] = "16211.1" //Юля Красник
-	userGroup[238697588] = "16941.2" //George K
-	userGroup[172833377] = "15808.1" //Piligrim_hola
-	userGroup[149906245] = "15808.1" //Maria Petlina
-	userGroup[185802556] = "15809.1" //Яша Филологический
-	userGroup[200867264] = "14304.1" //Saint Pilgrimage
-	userGroup[258540109] = "13504.1" //Alexey Taratenko
-	userGroup[1469626] = "14308.1"   //Iwan 茴_茴
-	userGroup[254438520] = "16134.1" //Vladislav Rublev
-
-	return nil
-}
-
-func reviewUsers() error {
-	users[myId] = "Создатель: @Dimonchik0036"
-
-	users[61219035] = "Ник: @banyrule\nИмя: Bany\nФамилия: Rule\nID: 61219035"
-	users[57813058] = "Ник: @bsgun\nИмя: mitya\nФамилия: mihelson\nID: 57813058"
-	users[244489778] = "Ник: @\nИмя: Elfrida\nФамилия: Bambutsa\nID: 244489778"
-	users[129363483] = "Ник: @\nИмя: Андрей\nФамилия: Щербин\nID: 129363483"
-	users[238697588] = "Ник: @\nИмя: George\nФамилия: K\nID: 238697588"
-	users[248239658] = "Ник: @\nИмя: Tiko\nФамилия: Defect\nID: 248239658"
-	users[243429867] = "Ник: @\nИмя: Александр\nФамилия: Афанасенков\nID: 243429867"
-	users[221524772] = "Ник: @\nИмя: Павел\nФамилия: Тырышкин\nID: 221524772"
-	users[172833377] = "Ник: @\nИмя: Piligrim_hola\nФамилия: \nID: 172833377"
-	users[185802556] = "Ник: @Piter_Piter\nИмя: Яша\nФамилия: Филологический\nID: 185802556"
-	users[107950408] = "Ник: @kvblinov\nИмя: Konstantin\nФамилия: Blinov\nID: 107950408"
-	users[149906245] = "Ник: @mariapetlina\nИмя: Maria\nФамилия: Petlina\nID: 149906245"
-	users[200867264] = "Ник: @dragn126\nИмя: Saint\nФамилия: Pilgrimage\nID: 200867264"
-	users[94943173] = "Ник: @VLS_TLGRM\nИмя: VeLLeSSS/Сергей\nФамилия: Кулеша\nID: 94943173"
-	users[258540109] = "Ник: @LeXT5\nИмя: Alexey\nФамилия: Taratenko\nID: 258540109"
-	users[218567363] = "Ник: @\nИмя: Vitaly\nФамилия: Liber\nID: 218567363"
-	users[1469626] = "Ник: @iwanko\nИмя: Iwan\nФамилия: 茴_茴\nID: 1469626"
-	users[254438520] = "Ник: @\nИмя: Vladislav\nФамилия: Rublev\nID: 254438520"
-	users[204767177] = "Ник: @\nИмя: Алексей\nФамилия: Р.\nID: 204767177"
-	users[270519216] = "Ник: @therrer\nИмя: Человек-полторашка\nФамилия: \nID: 270519216"
-	users[215065513] = "Ник: @\nИмя: Роман\nФамилия: Терехов\nID: 215065513"
-
-	return nil
-}
-
-func reviewChats() error {
-	return nil
-}
 
 func defaultUserSchedule(id int, group string) string {
 	if group == "" {
@@ -113,27 +63,27 @@ func parseSchedule() {
 	for {
 		res, err := http.Get("http://www.nsu.ru/education/schedule/Html_GK/Groups/")
 		if err != nil {
-			loggerAll.Print("Не удалось загрузить страницу:", err)
+			logAll.Print("Не удалось загрузить страницу:", err)
 			time.Sleep(time.Minute * 5)
 			continue
 		}
 
 		if res.Status != "200 OK" {
-			loggerAll.Print("Чёт пошло не так")
+			logAll.Print("Чёт пошло не так")
 			time.Sleep(time.Minute * 5)
 			continue
 		}
 
 		bodyReader, err := charset.NewReader(res.Body, res.Header.Get("Content-Type"))
 		if err != nil {
-			loggerAll.Print("Ошибка чтения страницы:", err)
+			logAll.Print("Ошибка чтения страницы:", err)
 			time.Sleep(time.Minute * 5)
 			continue
 		}
 
 		textEsc, err := ioutil.ReadAll(bodyReader)
 		if err != nil {
-			loggerAll.Print("Ошибка чтения страницы:", err)
+			logAll.Print("Ошибка чтения страницы:", err)
 			time.Sleep(time.Minute * 5)
 			continue
 		}
@@ -144,7 +94,7 @@ func parseSchedule() {
 
 		data, err := regexp.Compile("[0-9a-zA-Z-]+ [0-9:]{5}")
 		if err != nil {
-			loggerAll.Print("Не удалось создать правило для regexp")
+			logAll.Print("Не удалось создать правило для regexp")
 			time.Sleep(time.Minute * 5)
 			continue
 		}
@@ -160,27 +110,27 @@ func parseSchedule() {
 
 		res, err = http.Get("http://www.nsu.ru/education/schedule/Html_LK/Groups/")
 		if err != nil {
-			loggerAll.Print("Не удалось загрузить страницу:", err)
+			logAll.Print("Не удалось загрузить страницу:", err)
 			time.Sleep(time.Minute * 5)
 			continue
 		}
 
 		if res.Status != "200 OK" {
-			loggerAll.Print("Чёт пошло не так")
+			logAll.Print("Чёт пошло не так")
 			time.Sleep(time.Minute * 5)
 			continue
 		}
 
 		bodyReader, err = charset.NewReader(res.Body, res.Header.Get("Content-Type"))
 		if err != nil {
-			loggerAll.Print("Ошибка чтения страницы:", err)
+			logAll.Print("Ошибка чтения страницы:", err)
 			time.Sleep(time.Minute * 5)
 			continue
 		}
 
 		textEsc, err = ioutil.ReadAll(bodyReader)
 		if err != nil {
-			loggerAll.Print("Ошибка чтения страницы:", err)
+			logAll.Print("Ошибка чтения страницы:", err)
 			time.Sleep(time.Minute * 5)
 			continue
 		}
@@ -191,7 +141,7 @@ func parseSchedule() {
 
 		data, err = regexp.Compile("[0-9a-zA-Z-]+ [0-9:]{5}")
 		if err != nil {
-			loggerAll.Print("Не удалось создать правило для regexp")
+			logAll.Print("Не удалось создать правило для regexp")
 			time.Sleep(time.Minute * 5)
 			continue
 		}
@@ -265,24 +215,24 @@ func printSchedule(name string, offset int, id int) string {
 func scheduleNSU(group string) error {
 	res, err := http.Get("http://www.nsu.ru/education/schedule/Html_" + group + "/Groups/")
 	if err != nil {
-		loggerAll.Print("Не удалось загрузить страницу:", err)
+		logAll.Print("Не удалось загрузить страницу:", err)
 		return errors.New("Расписание временно недоступно.")
 	}
 
 	if res.Status != "200 OK" {
-		loggerAll.Print("Чёт пошло не так")
+		logAll.Print("Чёт пошло не так")
 		return errors.New("Не удалось найти такую группу.")
 	}
 
 	bodyReader, err := charset.NewReader(res.Body, res.Header.Get("Content-Type"))
 	if err != nil {
-		loggerAll.Print("Ошибка чтения страницы:", err)
+		logAll.Print("Ошибка чтения страницы:", err)
 		return errors.New("Упс, что-то пошло не так.")
 	}
 
 	textEsc, err := ioutil.ReadAll(bodyReader)
 	if err != nil {
-		loggerAll.Print("Ошибка чтения страницы:", err)
+		logAll.Print("Ошибка чтения страницы:", err)
 		return errors.New("Упс, что-то пошло не так.")
 	}
 
@@ -292,7 +242,7 @@ func scheduleNSU(group string) error {
 
 	data, err := regexp.Compile("[0-9a-zA-Z-]+ [0-9:]{5}")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp")
+		logAll.Print("Не удалось создать правило для regexp")
 		return errors.New("Не удалось создать regexp data")
 	}
 
@@ -300,7 +250,7 @@ func scheduleNSU(group string) error {
 
 	hrefRegexp, err := regexp.Compile(">[0-9a-z]*_[0-9]*[.]htm")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp")
+		logAll.Print("Не удалось создать правило для regexp")
 		return errors.New("Не удалось создать regexp data")
 	}
 
@@ -314,16 +264,16 @@ func scheduleNSU(group string) error {
 	for _, v := range hrefK {
 		err = parseTable(v[1:], group)
 		if err != nil {
-			loggerAll.Print("Не удалось выставить расписание: " + group)
+			logAll.Print("Не удалось выставить расписание: " + group)
 			schedule[v[1:]] = mess
 		}
 	}
 
 	if group == "GK" {
-		loggerAll.Print(date)
+		logAll.Print(date)
 		gkDate = date
 	} else {
-		loggerAll.Print(date)
+		logAll.Print(date)
 		lkDate = date
 	}
 
@@ -334,24 +284,24 @@ func scheduleNSU(group string) error {
 func parseTable(name string, group string) error {
 	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/" + name)
 	if err != nil {
-		loggerAll.Print("Не удалось загрузить страницу:", err)
+		logAll.Print("Не удалось загрузить страницу:", err)
 		return err
 	}
 
 	if res.Status != "200 OK" {
-		loggerAll.Println("Статус страницы не верен")
+		logAll.Println("Статус страницы не верен")
 		return errors.New("Статус страницы не верен.")
 	}
 
 	bodyReader, err := charset.NewReader(res.Body, res.Header.Get("Content-Type"))
 	if err != nil {
-		loggerAll.Print("Ошибка чтения страницы:", err)
+		logAll.Print("Ошибка чтения страницы:", err)
 		return err
 	}
 
 	textEsc, err := ioutil.ReadAll(bodyReader)
 	if err != nil {
-		loggerAll.Print("Ошибка чтения страницы:", err)
+		logAll.Print("Ошибка чтения страницы:", err)
 		return err
 	}
 
@@ -361,13 +311,13 @@ func parseTable(name string, group string) error {
 
 	nameRegexp, err := regexp.Compile("[0-9]+[a-zA-Z0-9а-яА-Я][.][0-9]*")
 	if err != nil {
-		loggerAll.Print("Не смог сделать regexp:", err)
+		logAll.Print("Не смог сделать regexp:", err)
 		return err
 	}
 
 	groupTitle := nameRegexp.FindString(title)
 	if groupTitle == "" {
-		loggerAll.Print("Ошибка титула")
+		logAll.Print("Ошибка титула")
 		return errors.New("Ошибка титула")
 	}
 
@@ -375,25 +325,25 @@ func parseTable(name string, group string) error {
 
 	blocksRegexp, err := regexp.Compile("</TR>[^><]")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp")
+		logAll.Print("Не удалось создать правило для regexp")
 		return err
 	}
 
 	beginRegexp, err := regexp.Compile("<TD>")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp")
+		logAll.Print("Не удалось создать правило для regexp")
 		return err
 	}
 
 	endRegexp, err := regexp.Compile("</TD>")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp")
+		logAll.Print("Не удалось создать правило для regexp")
 		return err
 	}
 
 	n := blocksRegexp.FindAllIndex(text, -1)
 	if len(n) < 8 {
-		loggerAll.Print("Неверное количество блоков")
+		logAll.Print("Неверное количество блоков")
 		return errors.New("Неверное количество блоков")
 	}
 
@@ -428,13 +378,13 @@ func parseTable(name string, group string) error {
 
 	words, err := regexp.Compile(">[а-яА-Я][^a-zA-Z]+?<")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp")
+		logAll.Print("Не удалось создать правило для regexp")
 		return err
 	}
 
 	doubleDay, err := regexp.Compile("<HR")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp")
+		logAll.Print("Не удалось создать правило для regexp")
 		return err
 	}
 
@@ -503,19 +453,19 @@ func parseTable(name string, group string) error {
 func parseTitle(text string) string {
 	titleRegexp, err := regexp.Compile("<H1>.*</H1>")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp", err)
+		logAll.Print("Не удалось создать правило для regexp", err)
 		return ""
 	}
 
 	facRegexp, err := regexp.Compile(".*>.*</A>")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp", err)
+		logAll.Print("Не удалось создать правило для regexp", err)
 		return ""
 	}
 
 	facNameRegexp, err := regexp.Compile(">.*<")
 	if err != nil {
-		loggerAll.Print("Не удалось создать правило для regexp", err)
+		logAll.Print("Не удалось создать правило для regexp", err)
 		return ""
 	}
 
@@ -552,7 +502,7 @@ func newChat(chat *tgbotapi.Chat) string {
 		"\nID: " + fmt.Sprintf("%d", chat.ID) +
 		"\nТип: " + chat.Type
 
-	logger.Println("\n'Чат'\n" + message + "\n")
+	logUsers.Println("\n'Чат'\n" + message + "\n")
 	chatsCount++
 
 	return message
@@ -565,7 +515,7 @@ func newUser(update *tgbotapi.Update) string {
 		"\nФамилия: " + update.Message.From.LastName +
 		"\nID: " + fmt.Sprintf("%d", update.Message.From.ID)
 
-	logger.Println("\n'Пользователь'\n" + message + "\n")
+	logUsers.Println("\n'Пользователь'\n" + message + "\n")
 
 	usersCount++
 
@@ -603,12 +553,12 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		message += "Количество чатов: " + strconv.Itoa(chatsCount)
 	case "sendall":
 		if arg != "" {
-			loggerAll.Print("Рассылаю всем: '" + arg + "'")
+			logAll.Print("Рассылаю всем: '" + arg + "'")
 
 			for i := range users {
 				_, err := bot.Send(tgbotapi.NewMessage(int64(i), arg))
 				if err != nil {
-					loggerAll.Print("Что-то пошло не так при рассылке ["+string(i)+"]", err)
+					logAll.Print("Что-то пошло не так при рассылке ["+string(i)+"]", err)
 				}
 			}
 		}
@@ -616,13 +566,13 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		return
 	case "setmessage":
 		weatherText = arg
-		loggerAll.Print("Обновлена строка температуры на: " + weatherText)
+		logAll.Print("Обновлена строка температуры на: " + weatherText)
 		message += "Готово!\n" + "'" + weatherText + "'"
 	case "sendmelog":
 		if arg == "data" || arg == "log" {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Отправляю..."))
 			if err != nil {
-				loggerAll.Print("Что-то пошло не так при sendmelog", err)
+				logAll.Print("Что-то пошло не так при sendmelog", err)
 			}
 
 			var name string
@@ -637,17 +587,17 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 			if err != nil {
 				_, err = bot.Send(tgbotapi.NewMessage(myId, "Не удаловь отправить файл."))
 				if err != nil {
-					loggerAll.Print("С отправкой файла всё плохо.")
+					logAll.Print("С отправкой файла всё плохо.")
 				}
 
-				loggerAll.Print("Ошибка отправки файла лога:", err)
+				logAll.Print("Ошибка отправки файла лога:", err)
 			}
 		} else {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Попробуй ещё раз ввести аргументы правильно:\n"+
 				"'data' - Файл полного лога.\n"+
 				"'log' - Файл с пользователями."))
 			if err != nil {
-				loggerAll.Print("Что-то пошло не так", err)
+				logAll.Print("Что-то пошло не так", err)
 			}
 		}
 
@@ -659,36 +609,21 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 
 	_, err := bot.Send(tgbotapi.NewMessage(myId, message))
 	if err != nil {
-		loggerAll.Print("Ошибка отправки сообщения - комманды:", err)
+		logAll.Print("Ошибка отправки сообщения - комманды:", err)
 	}
 }
 
 func main() {
-	timeToStart = time.Now().Format("020106_1504") + ".txt"
+	var err error
 
-	fileLoggerAll, err := os.OpenFile(timeToStart, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	logFileName, timeToStart, err = loader.InitLoggers(logUsers, logAll)
 	if err != nil {
-		log.Panic("Не удалось открыть файл:", err)
+		log.Fatal(err)
 	}
-
-	loggerAll = log.New(fileLoggerAll, "", log.LstdFlags)
-
-	fileLog, err := os.OpenFile(logFileName, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	if err != nil {
-		log.Panic("Не удалось открыть файл:", err)
-	}
-
-	_, err = fileLog.Seek(0, os.SEEK_END)
-	if err != nil {
-		log.Panic("Не удалось перейти в конец файла:", err)
-	}
-
-	logger = log.New(fileLog, "", log.LstdFlags)
-	logger.Println("\n<<<<<<Начало новой сессии>>>>>\n")
 
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
-		loggerAll.Panic("Бот в отпуске:", err)
+		logAll.Panic("Бот в отпуске:", err)
 	}
 
 	bot.Debug = false
@@ -696,24 +631,35 @@ func main() {
 	err = scheduleNSU("GK")
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с GK"))
-		loggerAll.Panic("GK")
+		logAll.Panic("GK")
 	}
 
 	err = scheduleNSU("LK")
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с LK"))
-		loggerAll.Panic("LK")
+		logAll.Panic("LK")
 	}
 
-	go weather.SearchWeather(&weatherText, loggerAll)
+	go func() {
+		for {
+			answer, err := weather.SearchWeather()
+			if err != nil {
+				logAll.Print(err)
+			} else {
+				weatherText = answer
+			}
+
+			time.Sleep(time.Minute)
+		}
+	}()
 
 	go parseSchedule()
 
-	loggerAll.Printf("Бот %s запущен.", bot.Self.UserName)
+	logAll.Printf("Бот %s запущен.", bot.Self.UserName)
 
 	_, err = bot.Send(tgbotapi.NewMessage(myId, "Я перезагрузился."))
 	if err != nil {
-		loggerAll.Print("Не смог отправить весточку повелителю.", err)
+		logAll.Print("Не смог отправить весточку повелителю.", err)
 	}
 
 	u := tgbotapi.NewUpdate(0)
@@ -721,12 +667,12 @@ func main() {
 
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		loggerAll.Panic(err)
+		logAll.Panic(err)
 	}
 
-	reviewUserGroup()
-	reviewUsers()
-	reviewChats()
+	loader.LoadUserGroup(userGroup)
+	loader.LoadUsers(users)
+	loader.LoadChats(chats)
 
 	for update := range updates {
 		if update.Message == nil {
@@ -741,7 +687,7 @@ func main() {
 
 				_, err := bot.Send(tgbotapi.NewMessage(myId, "Новая чат-сессия!\n"+n))
 				if err != nil {
-					loggerAll.Print("newChat:", err)
+					logAll.Print("newChat:", err)
 				}
 			}
 		}
@@ -753,12 +699,12 @@ func main() {
 
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Новый пользователь!\n"+n))
 			if err != nil {
-				loggerAll.Print("newUser:", err)
+				logAll.Print("newUser:", err)
 			}
 		}
 
 		if update.Message.Chat.IsGroup() || update.Message.Chat.IsChannel() || update.Message.Chat.IsSuperGroup() {
-			loggerAll.Printf("[%d] %s",
+			logAll.Printf("[%d] %s",
 				update.Message.Chat.ID, "'"+
 					update.Message.Chat.Title+"' "+
 					update.Message.From.FirstName+" "+
@@ -767,7 +713,7 @@ func main() {
 
 		}
 
-		loggerAll.Printf("[%d] %s: %s",
+		logAll.Printf("[%d] %s: %s",
 			update.Message.From.ID,
 			update.Message.From.FirstName+" "+
 				update.Message.From.LastName+" (@"+
@@ -828,7 +774,7 @@ func main() {
 			if !nilMsg {
 				_, err := bot.Send(msg)
 				if err != nil {
-					loggerAll.Print("Command:", err)
+					logAll.Print("Command:", err)
 				}
 			}
 
