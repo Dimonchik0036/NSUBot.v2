@@ -274,8 +274,8 @@ func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *stri
 }
 
 // ParseSchedule Проверяет расписание на изменение.
-func ParseSchedule(scheduleMap map[string][7]string, gkDate *string, lkDate *string) (info string, err error) {
-	res, err := http.Get("http://www.nsu.ru/education/scheduleMap/Html_GK/Groups/")
+func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *string, lkDate *string) (info string, err error) {
+	res, err := http.Get("http://www.nsu.ru/education/scheduleMap/Html_" + group + "/Groups/")
 	if err != nil {
 		return "", err
 	}
@@ -308,49 +308,21 @@ func ParseSchedule(scheduleMap map[string][7]string, gkDate *string, lkDate *str
 
 	date := data.FindString(text)
 
-	if (date != "") && (*gkDate != date) {
-		mess, err := GetAllSchedule(scheduleMap, "GK", gkDate, lkDate)
-		if err == nil {
-			info = date + " " + mess
-			*gkDate = date
-		}
-	}
-
-	res, err = http.Get("http://www.nsu.ru/education/scheduleMap/Html_LK/Groups/")
-	if err != nil {
-		return "", err
-	}
-
-	if res.Status != "200 OK" {
-		return "", errors.New("Ошибка статуса страницы: " + res.Status)
-	}
-
-	bodyReader, err = charset.NewReader(res.Body, res.Header.Get("Content-Type"))
-	if err != nil {
-		return "", err
-	}
-
-	textEsc, err = ioutil.ReadAll(bodyReader)
-	if err != nil {
-		return "", err
-	}
-
-	res.Body.Close()
-
-	text = html.UnescapeString(string(textEsc))
-
-	data, err = regexp.Compile("[0-9a-zA-Z-]+ [0-9:]{5}")
-	if err != nil {
-		return "", err
-	}
-
-	date = data.FindString(text)
-
-	if (date != "") && (*lkDate != date) {
-		mess, err := GetAllSchedule(scheduleMap, "LK", gkDate, lkDate)
-		if err == nil {
-			info = date + " " + info + " " + mess
-			*lkDate = date
+	if date != "" {
+		if (group == "GK") && (*gkDate != date) {
+			mess, err := GetAllSchedule(scheduleMap, "GK", gkDate, lkDate)
+			if err == nil {
+				info = date + " " + mess
+				*gkDate = date
+			}
+		} else {
+			if (group == "LK") && (*lkDate != date) {
+				mess, err := GetAllSchedule(scheduleMap, "LK", gkDate, lkDate)
+				if err == nil {
+					info = date + " " + mess
+					*lkDate = date
+				}
+			}
 		}
 	}
 

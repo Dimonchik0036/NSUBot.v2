@@ -11,23 +11,30 @@ import (
 	"time"
 )
 
+// Хранят основную информацию
 var chats = make(map[int64]string)
 var users = make(map[int]string)
 var userGroup = make(map[int]string)
 var scheduleMap = make(map[string][7]string)
 
+// Хранят количество пользователей
 var chatsCount int
 var usersCount int
 
+// Хранят дату последнего обновления
 var gkDate string
 var lkDate string
 
+// Рабочие переменные
 var weatherText string = "Погода временно недоступна, попробуйте чуть позднее."
 var logFileName string
 var timeToStart string
+
+// Логгеры
 var logUsers *log.Logger
 var logAll *log.Logger
 
+// Личные данные
 const myId = 227605930
 const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
 
@@ -273,7 +280,16 @@ func main() {
 
 	go func() {
 		for {
-			answer, err := schedule.ParseSchedule(scheduleMap, &gkDate, &lkDate)
+			answer, err := schedule.ParseSchedule(scheduleMap, "GK", &gkDate, &lkDate)
+			if err != nil {
+				logAll.Print(err)
+			} else {
+				if answer != "" {
+					logAll.Print(answer)
+				}
+			}
+
+			answer, err = schedule.ParseSchedule(scheduleMap, "LK", &gkDate, &lkDate)
 			if err != nil {
 				logAll.Print(err)
 			} else {
