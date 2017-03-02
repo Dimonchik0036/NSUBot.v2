@@ -267,19 +267,6 @@ func main() {
 
 	go func() {
 		for {
-			answer, err := weather.SearchWeather()
-			if err != nil {
-				logAll.Print(err)
-			} else {
-				weatherText = answer
-			}
-
-			time.Sleep(time.Minute)
-		}
-	}()
-
-	go func() {
-		for {
 			answer, err := schedule.ParseSchedule(scheduleMap, "GK", &gkDate, &lkDate)
 			if err != nil {
 				logAll.Print(err)
@@ -302,6 +289,19 @@ func main() {
 		}
 	}()
 
+	go func() {
+		for {
+			answer, err := weather.SearchWeather()
+			if err != nil {
+				logAll.Print(err)
+			} else {
+				weatherText = answer
+			}
+
+			time.Sleep(time.Minute)
+		}
+	}()
+
 	logAll.Printf("Бот %s запущен.", bot.Self.UserName)
 
 	_, err = bot.Send(tgbotapi.NewMessage(myId, "Я перезагрузился."))
@@ -320,6 +320,7 @@ func main() {
 	loader.LoadUserGroup(userGroup)
 	loader.LoadUsers(users)
 	loader.LoadChats(chats)
+	loader.LoadSchedule(scheduleMap)
 
 	for update := range updates {
 		if update.Message == nil {

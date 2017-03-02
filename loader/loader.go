@@ -88,3 +88,8 @@ func LoadUsers(users map[int]string) error {
 func LoadChats(chats map[int64]string) error {
 	return nil
 }
+
+// LoadSchedule Загружает данные о чатах.
+func LoadSchedule(scheduleMap map[string][7]string) error {
+	return nil
+}
