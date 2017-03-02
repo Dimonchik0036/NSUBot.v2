@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"TelegramBot/weather"
 	"errors"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -24,18 +24,17 @@ var schedule = make(map[string][7]string)
 var chatsCount int
 var usersCount int
 
-var runner bool = true
-
 var gkDate string
 var lkDate string
 
-var weather string = "Погода временно недоступна, попробуйте чуть позднее."
+var weatherText string = "Погода временно недоступна, попробуйте чуть позднее."
 var logFileName = "logUsers.txt"
 var timeToStart string
 var logger *log.Logger
 var loggerAll *log.Logger
 
 const myId = 227605930
+const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
 
 func reviewUserGroup() error {
 	userGroup[myId] = "16211.1"
@@ -153,12 +152,10 @@ func parseSchedule() {
 		date := data.FindString(text)
 
 		if (date != "") && (gkDate != date) {
-			runner = false
 			err = scheduleNSU("GK")
 			if err == nil {
 				gkDate = date
 			}
-			runner = true
 		}
 
 		res, err = http.Get("http://www.nsu.ru/education/schedule/Html_LK/Groups/")
@@ -202,12 +199,10 @@ func parseSchedule() {
 		date = data.FindString(text)
 
 		if (date != "") && (lkDate != date) {
-			runner = false
 			err = scheduleNSU("LK")
 			if err == nil {
 				lkDate = date
 			}
-			runner = true
 		}
 
 		time.Sleep(time.Minute * 5)
@@ -465,7 +460,7 @@ func parseTable(name string, group string) error {
 					}
 
 					text += " <|> "
-					text += string(v[1 : len(v)-1])+", "
+					text += string(v[1:len(v)-1]) + ", "
 					doubleDayFlag = false
 				} else {
 					text += symbol + string(v[1:len(v)-1])
@@ -548,65 +543,6 @@ func parseTitle(text string) string {
 	return facName + "\n" + titleText
 }
 
-// parceWeatherNSU Занимается парсингом температуры
-func parceWeatherNSU() {
-	for {
-		for !runner {
-			time.Sleep(time.Second / 2)
-		}
-
-		res, err := http.Get("http://weather.nsu.ru/loadata.php")
-		if err != nil {
-			loggerAll.Print("weather:", err)
-
-			time.Sleep(time.Minute)
-			continue
-		}
-
-		if res.Status != "200 OK" {
-			loggerAll.Print("Ошибка статуса страницы:", err)
-
-			time.Sleep(time.Minute)
-			continue
-		}
-
-		reader := bufio.NewReader(res.Body)
-
-		text, err := reader.ReadBytes(' ')
-		if err != nil {
-			loggerAll.Print("weather:", err)
-
-			time.Sleep(time.Minute)
-			continue
-		}
-
-		for string(text) != "'Температура " {
-			text, err = reader.ReadBytes(' ')
-			if err != nil {
-				loggerAll.Print("weather:", err)
-			}
-		}
-
-		t, err := reader.ReadBytes('\'')
-		if err != nil {
-			loggerAll.Println("weather:", err)
-
-			time.Sleep(time.Minute)
-			continue
-		}
-
-		res.Body.Close()
-
-		mess := string(text[1:])
-		mess += string(t[:len(t)-1])
-		mess += "\nВремя последнего обновления: " + time.Now().Format("02.01.06 15:04")
-
-		weather = mess
-
-		time.Sleep(time.Minute)
-	}
-}
-
 // newChat Возвращает строку с новым каналом
 func newChat(chat *tgbotapi.Chat) string {
 	message := "Ник: @" + chat.UserName +
@@ -679,9 +615,9 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 
 		return
 	case "setmessage":
-		weather = arg
-		loggerAll.Print("Обновлена строка температуры на: " + weather)
-		message += "Готово!\n" + "'" + weather + "'"
+		weatherText = arg
+		loggerAll.Print("Обновлена строка температуры на: " + weatherText)
+		message += "Готово!\n" + "'" + weatherText + "'"
 	case "sendmelog":
 		if arg == "data" || arg == "log" {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Отправляю..."))
@@ -750,7 +686,7 @@ func main() {
 	logger = log.New(fileLog, "", log.LstdFlags)
 	logger.Println("\n<<<<<<Начало новой сессии>>>>>\n")
 
-	bot, err := tgbotapi.NewBotAPI("371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI")
+	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		loggerAll.Panic("Бот в отпуске:", err)
 	}
@@ -769,7 +705,8 @@ func main() {
 		loggerAll.Panic("LK")
 	}
 
-	go parceWeatherNSU()
+	go weather.SearchWeather(&weatherText, loggerAll)
+
 	go parseSchedule()
 
 	loggerAll.Printf("Бот %s запущен.", bot.Self.UserName)
@@ -876,7 +813,7 @@ func main() {
 			case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "@Dimonchik0036\ngithub.com/dimonchik0036")
 			case "Погода", "weather", "погода", "Weather", "weather_nsu":
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, weather)
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, weatherText)
 			case "today":
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, printSchedule(update.Message.CommandArguments(), 0, update.Message.From.ID))
 			case "tomorrow":
