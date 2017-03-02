@@ -465,7 +465,7 @@ func parseTable(name string, group string) error {
 					}
 
 					text += " <|> "
-					text += string(v[1 : len(v)-1])
+					text += string(v[1 : len(v)-1])+", "
 					doubleDayFlag = false
 				} else {
 					text += symbol + string(v[1:len(v)-1])

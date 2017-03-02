@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"time"
+	"strings"
 )
 
 var schedule = make(map[string][7]string)
@@ -139,7 +141,10 @@ func parseTable(name string, group string) error {
 				tableDay[k][count] = []byte(">" + string(table[k][begin[index][1]:end[i][0]]))
 				if end[i][0]-begin[index][1] == 2 {
 					tableDay[k][count] = []byte("-")
+				} else {
+					tableDay[k][count] = []byte(strings.ToUpper(string(tableDay[k][count])))
 				}
+
 				index = i
 				count++
 			}
@@ -149,7 +154,6 @@ func parseTable(name string, group string) error {
 			tableDay[k][count] = []byte("-")
 		}
 	}
-
 
 	words, err := regexp.Compile(">[а-яА-Я][^a-zA-Z]+?<")
 	if err != nil {
@@ -185,7 +189,7 @@ func parseTable(name string, group string) error {
 					}
 
 					text += " <|> "
-					text +=  string(v[1:len(v)-1])
+					text += string(v[1:len(v)-1]) + ", "
 					doubleDayFlag = false
 				} else {
 					text += symbol + string(v[1:len(v)-1])
@@ -227,4 +231,13 @@ func main() {
 	parseTable("16342_1.htm", "GK")
 
 	print(schedule["16342.1"][0])
+	year, weekIn := time.Now().ISOWeek()
+
+	var week string
+	if (weekIn+1)%2 == 0 {
+		week = "чётная"
+	} else {
+		week = "нечётная"
+	}
+	print("Год: ", year, "\nНеделя: ", week)
 }
