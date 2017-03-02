@@ -50,6 +50,7 @@ func searchFacultyName(text string) (string, error) {
 	return facName + "\n" + titleText, nil
 }
 
+// getGroupSchedule Загружает расписание группы.
 func getGroupSchedule(scheduleMap map[string][7]string, name string, group string) error {
 	res, err := http.Get("http://old.nsu.ru/education/scheduleMap/Html_" + group + "/Groups/" + name)
 	if err != nil {
@@ -209,6 +210,7 @@ func getGroupSchedule(scheduleMap map[string][7]string, name string, group strin
 	return nil
 }
 
+// GetAllSchedule Заполняет расписание.
 func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *string, lkDate *string) (info string, err error) {
 	res, err := http.Get("http://www.nsu.ru/education/scheduleMap/Html_" + group + "/Groups/")
 	if err != nil {
@@ -271,6 +273,7 @@ func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *stri
 	return info, nil
 }
 
+// ParseSchedule Проверяет расписание на изменение.
 func ParseSchedule(scheduleMap map[string][7]string, gkDate *string, lkDate *string) (info string, err error) {
 	res, err := http.Get("http://www.nsu.ru/education/scheduleMap/Html_GK/Groups/")
 	if err != nil {
