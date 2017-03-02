@@ -1,9 +1,0 @@
-2017/02/19 18:09:46 Бот dimonchik0036_bot запущен.
-2017/02/19 18:10:08 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
-2017/02/19 18:10:19 [227605930] Dmitry Gridin (@Dimonchik0036): /help
-2017/02/19 18:10:23 [227605930] Dmitry Gridin (@Dimonchik0036): /users
-2017/02/19 18:10:28 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog data
-2017/02/19 18:10:41 [227605930] Dmitry Gridin (@Dimonchik0036): /sendmelog log
-2017/02/19 18:38:00 [227605930] Dmitry Gridin (@Dimonchik0036): /weather
-2017/02/19 18:38:06 [227605930] Dmitry Gridin (@Dimonchik0036): /help
-2017/02/19 22:37:34 [270519216] Человек-полторашка  (@therrer): /weather
