@@ -19,7 +19,7 @@ var scheduleMap = make(map[string][7]string)
 
 // Хранят количество пользователей
 var chatsCount int
-var usersCount int
+var usersCount int = 31
 
 // Хранят дату последнего обновления
 var gkDate string
@@ -153,7 +153,8 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 			"/groups <_|all> - Выводит статистику по каналам.\n" +
 			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды.\n" +
 			"/sendmelog <data|log> - Присылает файл с логами.\n" +
-			"/sendall <текст> - Делает рассылку текста. "
+			"/sendall <текст> - Делает рассылку текста. \n" +
+			"/reset - Завершает текущую сессию бота."
 	case "users":
 		if arg == "all" {
 			for _, v := range users {
@@ -237,7 +238,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 func main() {
 	var err error
 
-	logFileName, timeToStart, err = loader.InitLoggers(logUsers, logAll)
+	logFileName, timeToStart, err = loader.InitLoggers(&logUsers, &logAll)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -427,6 +428,12 @@ func main() {
 			}
 
 			if update.Message.From.ID == myId {
+				if update.Message.Command() == "reset" {
+					bot.Send(tgbotapi.NewMessage(myId, "Выключаюсь."))
+					logAll.Print("Выключаюсь по приказу.")
+					break
+				}
+
 				sendMembers(update.Message.Command(), update.Message.CommandArguments(), bot)
 			}
 		}

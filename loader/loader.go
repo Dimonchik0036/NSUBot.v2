@@ -8,7 +8,7 @@ import (
 )
 
 // InitLoggers Инициализирует логгеры.
-func InitLoggers(logUser *log.Logger, logAll *log.Logger) (filenameLogUsers string, filenameLogAll string, err error) {
+func InitLoggers(logUser **log.Logger, logAll **log.Logger) (filenameLogUsers string, filenameLogAll string, err error) {
 	filenameLogUsers = "logUsers.txt"
 	filenameLogAll = time.Now().Format("020106_1504") + ".txt"
 
@@ -17,7 +17,8 @@ func InitLoggers(logUser *log.Logger, logAll *log.Logger) (filenameLogUsers stri
 		return "", "", errors.New("Не удалось открыть файл: " + filenameLogAll)
 	}
 
-	logAll = log.New(fileLoggerAll, "", log.LstdFlags)
+	*logAll = log.New(fileLoggerAll, "", log.LstdFlags)
+	(*logAll).Println("Начинаю.")
 
 	fileLogUsers, err := os.OpenFile(filenameLogUsers, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
@@ -29,8 +30,8 @@ func InitLoggers(logUser *log.Logger, logAll *log.Logger) (filenameLogUsers stri
 		return "", "", errors.New("Не удалось перейти в конец файла.")
 	}
 
-	logUser = log.New(fileLogUsers, "", log.LstdFlags)
-	logUser.Println("\n<<<<<<Начало новой сессии>>>>>\n")
+	*logUser = log.New(fileLogUsers, "", log.LstdFlags)
+	(*logUser).Println("\n<<<<<<Начало новой сессии>>>>>\n")
 
 	return
 }
@@ -51,6 +52,10 @@ func LoadUserGroup(userGroup map[int]string) error {
 	userGroup[258540109] = "13504.1" //Alexey Taratenko
 	userGroup[1469626] = "14308.1"   //Iwan 茴_茴
 	userGroup[254438520] = "16134.1" //Vladislav Rublev
+	userGroup[161872635] = "16209.1" //Кирилл Полушин
+	userGroup[204767177] = "13121.1" //Алексей Р.
+	userGroup[693712] = "14203.1"    //Николай Березовский
+	userGroup[338030847] = "16203.1" //Fedor Pushkov
 
 	return nil
 }
@@ -80,6 +85,15 @@ func LoadUsers(users map[int]string) error {
 	users[204767177] = "Ник: @\nИмя: Алексей\nФамилия: Р.\nID: 204767177"
 	users[270519216] = "Ник: @therrer\nИмя: Человек-полторашка\nФамилия: \nID: 270519216"
 	users[215065513] = "Ник: @\nИмя: Роман\nФамилия: Терехов\nID: 215065513"
+	users[161872635] = "Ник: @kirpichik\nИмя: Кирилл\nФамилия: Полушин\nID: 161872635"
+	users[200874470] = "Ник: @MrAkakuy\nИмя: Paul\nФамилия: Kholyavko\nID: 200874470"
+	users[693712] = "Ник: @nberezowsky\nИмя: Николай\nФамилия: Березовский\nID: 693712"
+	users[70167980] = "Ник: @mefbus\nИмя: Eba⚡️⚡️osina\nФамилия: \nID: 70167980"
+	users[338030847] = "Ник: @\nИмя: Fedor\nФамилия: Pushkov\nID: 338030847"
+	users[142080444] = "Ник: @dem1tris\nИмя: Dmitry\nФамилия: Ivanishkin\nID: 142080444"
+	users[245647624] = "Ник: @\nИмя: Ksu\nФамилия: Pecherskikh\nID: 245647624"
+	users[250493282] = "Ник: @\nИмя: Yulia\nФамилия: Krasnik\nID: 250493282"
+	users[245090894] = "Ник: @\nИмя: Polina\nФамилия: L.\nID: 245090894"
 
 	return nil
 }

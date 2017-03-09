@@ -9,16 +9,17 @@ import (
 )
 
 const myId = 227605930
+const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
 
 func main() {
-	file, err := os.OpenFile("logStart.txt", os.O_CREATE|os.O_RDWR, os.ModePerm)
+	file, err := os.OpenFile("logStart.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	myLogger := log.New(file, "", log.LstdFlags)
 
-	bot, err := tgbotapi.NewBotAPI("371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI")
+	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
 		myLogger.Panic("Бот в отпуске:", err)
 	}
@@ -53,8 +54,8 @@ func main() {
 			if err != nil {
 				myLogger.Print("Не отправить сообщение боту.")
 			}
-		}
 
-		time.Sleep(time.Second * 30)
+			time.Sleep(time.Second * 30)
+		}
 	}
 }

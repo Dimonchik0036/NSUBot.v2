@@ -52,7 +52,7 @@ func searchFacultyName(text string) (string, error) {
 
 // getGroupSchedule Загружает расписание группы.
 func getGroupSchedule(scheduleMap map[string][7]string, name string, group string) error {
-	res, err := http.Get("http://old.nsu.ru/education/scheduleMap/Html_" + group + "/Groups/" + name)
+	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/" + name)
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func getGroupSchedule(scheduleMap map[string][7]string, name string, group strin
 
 // GetAllSchedule Заполняет расписание.
 func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *string, lkDate *string) (info string, err error) {
-	res, err := http.Get("http://www.nsu.ru/education/scheduleMap/Html_" + group + "/Groups/")
+	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/")
 	if err != nil {
 		return "", errors.New("Расписание временно недоступно.")
 	}
@@ -263,10 +263,10 @@ func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *stri
 	}
 
 	if group == "GK" {
-		info = date + " " + info
+		info = "GK " + date + " " + info
 		*gkDate = date
 	} else {
-		info = date + " " + info
+		info = "LK " + date + " " + info
 		*lkDate = date
 	}
 
@@ -275,7 +275,7 @@ func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *stri
 
 // ParseSchedule Проверяет расписание на изменение.
 func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *string, lkDate *string) (info string, err error) {
-	res, err := http.Get("http://www.nsu.ru/education/scheduleMap/Html_" + group + "/Groups/")
+	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/")
 	if err != nil {
 		return "", err
 	}
@@ -312,14 +312,14 @@ func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *strin
 		if (group == "GK") && (*gkDate != date) {
 			mess, err := GetAllSchedule(scheduleMap, "GK", gkDate, lkDate)
 			if err == nil {
-				info = date + " " + mess
+				info = "GK " + date + " " + mess
 				*gkDate = date
 			}
 		} else {
 			if (group == "LK") && (*lkDate != date) {
 				mess, err := GetAllSchedule(scheduleMap, "LK", gkDate, lkDate)
 				if err == nil {
-					info = date + " " + mess
+					info = "LK " + date + " " + mess
 					*lkDate = date
 				}
 			}
