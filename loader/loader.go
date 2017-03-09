@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// InitLoggers Инициализирует логгеры.
-func InitLoggers(logUser **log.Logger, logAll **log.Logger) (filenameLogUsers string, filenameLogAll string, err error) {
+// LoadLoggers Инициализирует логгеры.
+func LoadLoggers(logUser **log.Logger, logAll **log.Logger) (filenameLogUsers string, filenameLogAll string, err error) {
 	filenameLogUsers = "logUsers.txt"
 	filenameLogAll = time.Now().Format("020106_1504") + ".txt"
 

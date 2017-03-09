@@ -1,6 +1,7 @@
 package main
 
 import (
+	"TelegramBot/customers"
 	"TelegramBot/loader"
 	"TelegramBot/schedule"
 	"TelegramBot/weather"
@@ -38,82 +39,6 @@ var logAll *log.Logger
 const myId = 227605930
 const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
 
-func defaultUserSchedule(id int, group string) string {
-	if group == "" {
-		return "Вы не ввели номер группы."
-	}
-
-	if len(group) > 16 {
-		return "Слишком много символов."
-	}
-
-	_, ok := scheduleMap[group]
-	if !ok {
-		group += ".1"
-		_, ok = scheduleMap[group]
-		if !ok {
-			return "Введён некорректный номер группы, попробуйте повторить попытку или воспользоваться /help и /faq для помощи."
-		}
-	}
-
-	userGroup[id] = group
-
-	return "Группа '" + group + "' успешно назначена, нажмите на /today или /tomorrow для проверки правильности выбора."
-}
-
-func printSchedule(name string, offset int, id int) string {
-	if len(name) > 16 {
-		return "Введите корректный номер группы."
-	}
-
-	if name == "" {
-		n, ok := userGroup[id]
-		if ok {
-			name = n
-		}
-	}
-
-	v, ok := scheduleMap[name]
-	if !ok {
-		name += ".1"
-		v, ok = scheduleMap[name]
-		if !ok {
-			return "Неверно задан номер группы. Воспользуйтесь /help или /faq для помощи."
-		}
-	}
-
-	var textDay [7]string
-
-	textDay[0] = "Понедельник."
-	textDay[1] = "Вторник."
-	textDay[2] = "Среда."
-	textDay[3] = "Четверг."
-	textDay[4] = "Пятница."
-	textDay[5] = "Суббота."
-	textDay[6] = "Воскресенье."
-
-	var number int
-
-	switch time.Now().Weekday().String() {
-	case "Monday":
-		number = 0
-	case "Tuesday":
-		number = 1
-	case "Wednesday":
-		number = 2
-	case "Thursday":
-		number = 3
-	case "Friday":
-		number = 4
-	case "Saturday":
-		number = 5
-	case "Sunday":
-		number = 6
-	}
-
-	return textDay[(number+offset)%7] + "\n" + v[(number+offset)%7]
-}
-
 // newChat Возвращает строку с новым каналом
 func newChat(chat *tgbotapi.Chat) string {
 	message := "Ник: @" + chat.UserName +
@@ -137,7 +62,6 @@ func newUser(update *tgbotapi.Update) string {
 		"\nID: " + fmt.Sprintf("%d", update.Message.From.ID)
 
 	logUsers.Println("\n'Пользователь'\n" + message + "\n")
-
 	usersCount++
 
 	return message
@@ -238,7 +162,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 func main() {
 	var err error
 
-	logFileName, timeToStart, err = loader.InitLoggers(&logUsers, &logAll)
+	logFileName, timeToStart, err = loader.LoadLoggers(&logUsers, &logAll)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -410,11 +334,11 @@ func main() {
 			case "Погода", "weather", "погода", "Weather", "weather_nsu":
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, weatherText)
 			case "today":
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, printSchedule(update.Message.CommandArguments(), 0, update.Message.From.ID))
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 0, update.Message.From.ID))
 			case "tomorrow":
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, printSchedule(update.Message.CommandArguments(), 1, update.Message.From.ID))
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 1, update.Message.From.ID))
 			case "setgroup":
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, defaultUserSchedule(update.Message.From.ID, update.Message.CommandArguments()))
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(scheduleMap, userGroup, update.Message.From.ID, update.Message.CommandArguments()))
 			default:
 				nilMsg = true
 

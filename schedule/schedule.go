@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 // searchFacultyName Вытаскивает из текста название факультета.
@@ -327,4 +328,57 @@ func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *strin
 	}
 
 	return info, nil
+}
+
+func PrintSchedule(scheduleMap map[string][7]string, userGroup map[int]string, name string, offset int, id int) string {
+	if len(name) > 16 {
+		return "Введите корректный номер группы."
+	}
+
+	if name == "" {
+		n, ok := userGroup[id]
+		if ok {
+			name = n
+		}
+	}
+
+	v, ok := scheduleMap[name]
+	if !ok {
+		name += ".1"
+		v, ok = scheduleMap[name]
+		if !ok {
+			return "Неверно задан номер группы. Воспользуйтесь /help или /faq для помощи."
+		}
+	}
+
+	var textDay [7]string
+
+	textDay[0] = "Понедельник."
+	textDay[1] = "Вторник."
+	textDay[2] = "Среда."
+	textDay[3] = "Четверг."
+	textDay[4] = "Пятница."
+	textDay[5] = "Суббота."
+	textDay[6] = "Воскресенье."
+
+	var number int
+
+	switch time.Now().Weekday().String() {
+	case "Monday":
+		number = 0
+	case "Tuesday":
+		number = 1
+	case "Wednesday":
+		number = 2
+	case "Thursday":
+		number = 3
+	case "Friday":
+		number = 4
+	case "Saturday":
+		number = 5
+	case "Sunday":
+		number = 6
+	}
+
+	return textDay[(number+offset)%7] + "\n" + v[(number+offset)%7]
 }
