@@ -330,6 +330,7 @@ func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *strin
 	return info, nil
 }
 
+// PrintSchedule Возвращает расписание.
 func PrintSchedule(scheduleMap map[string][7]string, userGroup map[int]string, name string, offset int, id int) string {
 	if len(name) > 16 {
 		return "Введите корректный номер группы."
