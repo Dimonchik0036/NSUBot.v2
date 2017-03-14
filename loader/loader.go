@@ -1,11 +1,27 @@
 package loader
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/go-telegram-bot-api/telegram-bot-api"
+	"io"
 	"log"
 	"os"
 	"time"
 )
+
+type UserInfo struct {
+	TimeCreate     string `json:"TimeCreate"`
+	TimeLastAction string `json:"TimeLastAction"`
+	FirstName      string `json:"FirstName"`
+	LastName       string `json:"LastName"`
+	UserName       string `json:"UserName"`
+	ID             int    `json:"ID"`
+}
+
+var UserFileName string = "users_info.txt"
+var TimeFormat string = "02.01.06 15:04:10"
 
 // LoadLoggers Инициализирует логгеры.
 func LoadLoggers(logUser **log.Logger, logAll **log.Logger) (filenameLogUsers string, filenameLogAll string, err error) {
@@ -36,8 +52,19 @@ func LoadLoggers(logUser **log.Logger, logAll **log.Logger) (filenameLogUsers st
 	return
 }
 
+func WriteUsers(mess string) string {
+	var u UserInfo
+
+	err := json.Unmarshal([]byte(mess), &u)
+	if err != nil {
+		return "Ошибочка."
+	}
+
+	return convertUserInfo(u)
+}
+
 // LoadUserGroup Загружает данные о запомненных группах.
-func LoadUserGroup(userGroup map[int]string) error {
+func LoadUserGroup(userGroup map[int]string) (string, error) {
 	userGroup[227605930] = "16211.1" // Создатель
 
 	userGroup[221524772] = "16361.1" //Паша Тырышкин
@@ -57,43 +84,115 @@ func LoadUserGroup(userGroup map[int]string) error {
 	userGroup[693712] = "14203.1"    //Николай Березовский
 	userGroup[338030847] = "16203.1" //Fedor Pushkov
 
-	return nil
+	return "", nil
 }
 
 // LoadUsers Загружает данные о пользователях.
-func LoadUsers(users map[int]string) error {
-	users[227605930] = "Создатель: @Dimonchik0036" // Создатель
+func LoadUsers(users map[int]string) (int, error) {
+	userfile, err := os.OpenFile(UserFileName, os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return 0, err
+	}
 
-	users[61219035] = "Ник: @banyrule\nИмя: Bany\nФамилия: Rule\nID: 61219035"
-	users[57813058] = "Ник: @bsgun\nИмя: mitya\nФамилия: mihelson\nID: 57813058"
-	users[244489778] = "Ник: @\nИмя: Elfrida\nФамилия: Bambutsa\nID: 244489778"
-	users[129363483] = "Ник: @\nИмя: Андрей\nФамилия: Щербин\nID: 129363483"
-	users[238697588] = "Ник: @\nИмя: George\nФамилия: K\nID: 238697588"
-	users[248239658] = "Ник: @\nИмя: Tiko\nФамилия: Defect\nID: 248239658"
-	users[243429867] = "Ник: @\nИмя: Александр\nФамилия: Афанасенков\nID: 243429867"
-	users[221524772] = "Ник: @\nИмя: Павел\nФамилия: Тырышкин\nID: 221524772"
-	users[172833377] = "Ник: @\nИмя: Piligrim_hola\nФамилия: \nID: 172833377"
-	users[185802556] = "Ник: @Piter_Piter\nИмя: Яша\nФамилия: Филологический\nID: 185802556"
-	users[107950408] = "Ник: @kvblinov\nИмя: Konstantin\nФамилия: Blinov\nID: 107950408"
-	users[149906245] = "Ник: @mariapetlina\nИмя: Maria\nФамилия: Petlina\nID: 149906245"
-	users[200867264] = "Ник: @dragn126\nИмя: Saint\nФамилия: Pilgrimage\nID: 200867264"
-	users[94943173] = "Ник: @VLS_TLGRM\nИмя: VeLLeSSS/Сергей\nФамилия: Кулеша\nID: 94943173"
-	users[258540109] = "Ник: @LeXT5\nИмя: Alexey\nФамилия: Taratenko\nID: 258540109"
-	users[218567363] = "Ник: @\nИмя: Vitaly\nФамилия: Liber\nID: 218567363"
-	users[1469626] = "Ник: @iwanko\nИмя: Iwan\nФамилия: 茴_茴\nID: 1469626"
-	users[254438520] = "Ник: @\nИмя: Vladislav\nФамилия: Rublev\nID: 254438520"
-	users[204767177] = "Ник: @\nИмя: Алексей\nФамилия: Р.\nID: 204767177"
-	users[270519216] = "Ник: @therrer\nИмя: Человек-полторашка\nФамилия: \nID: 270519216"
-	users[215065513] = "Ник: @\nИмя: Роман\nФамилия: Терехов\nID: 215065513"
-	users[161872635] = "Ник: @kirpichik\nИмя: Кирилл\nФамилия: Полушин\nID: 161872635"
-	users[200874470] = "Ник: @MrAkakuy\nИмя: Paul\nФамилия: Kholyavko\nID: 200874470"
-	users[693712] = "Ник: @nberezowsky\nИмя: Николай\nФамилия: Березовский\nID: 693712"
-	users[70167980] = "Ник: @mefbus\nИмя: Eba⚡️⚡️osina\nФамилия: \nID: 70167980"
-	users[338030847] = "Ник: @\nИмя: Fedor\nФамилия: Pushkov\nID: 338030847"
-	users[142080444] = "Ник: @dem1tris\nИмя: Dmitry\nФамилия: Ivanishkin\nID: 142080444"
-	users[245647624] = "Ник: @\nИмя: Ksu\nФамилия: Pecherskikh\nID: 245647624"
-	users[250493282] = "Ник: @\nИмя: Yulia\nФамилия: Krasnik\nID: 250493282"
-	users[245090894] = "Ник: @\nИмя: Polina\nФамилия: L.\nID: 245090894"
+	var countUsers int
+
+	dec := json.NewDecoder(userfile)
+
+	for {
+		var u UserInfo
+
+		if err := dec.Decode(&u); err == io.EOF {
+			break
+		} else if err != nil {
+			return countUsers, err
+		}
+
+		info, err := json.Marshal(u)
+		if err == nil {
+			users[u.ID] = string(info)
+		}
+
+		countUsers++
+	}
+
+	err = userfile.Close()
+	if err != nil {
+		return countUsers, err
+	}
+
+	return countUsers, nil
+}
+
+// NewUserInfo Возвращает строку с новым пользователем
+func NewUserInfo(users map[int]string, update *tgbotapi.Update) (string, bool, error) {
+	_, ok := users[update.Message.From.ID]
+	if ok {
+		return "", false, nil
+	}
+
+	timeNow := time.Now().Format(TimeFormat)
+
+	u := UserInfo{
+		timeNow,
+		timeNow,
+		update.Message.From.FirstName,
+		update.Message.From.LastName,
+		update.Message.From.UserName,
+		update.Message.From.ID}
+
+	info, err := json.Marshal(u)
+	if err != nil {
+		return "", true, err
+	}
+
+	users[u.ID] = string(info)
+
+	userFile, err := os.OpenFile(UserFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModePerm)
+	if err != nil {
+		return convertUserInfo(u), true, err
+	}
+
+	userFile.WriteString(string(info) + "\n")
+
+	err = userFile.Close()
+	if err != nil {
+		return convertUserInfo(u), true, err
+	}
+
+	return convertUserInfo(u), true, nil
+}
+
+func convertUserInfo(u UserInfo) string {
+	info := u.UserName
+
+	if info == "" {
+		info = u.FirstName + " " + u.LastName
+	} else {
+		info = "@" + info
+	}
+
+	return "ID: " + fmt.Sprintf("%d", u.ID) + "\n" + info + "\nLast action: " + u.TimeLastAction
+}
+
+func ReloadUserDate(users map[int]string, id int) error {
+	info, ok := users[id]
+	if !ok {
+		return errors.New("Не удалось найти пользователя.")
+	}
+
+	var u UserInfo
+
+	err := json.Unmarshal([]byte(info), &u)
+	if err != nil {
+		return errors.New("Не удалось расшифровать данные.")
+	}
+
+	u.TimeLastAction = time.Now().Format(TimeFormat)
+
+	res, err := json.Marshal(u)
+	if err == nil {
+		users[id] = string(res)
+	}
 
 	return nil
 }

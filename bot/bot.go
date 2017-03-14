@@ -54,19 +54,6 @@ func newChat(chat *tgbotapi.Chat) string {
 	return message
 }
 
-// newUser Возвращает строку с новым пользователем
-func newUser(update *tgbotapi.Update) string {
-	message := "Ник: @" + update.Message.From.UserName +
-		"\nИмя: " + update.Message.From.FirstName +
-		"\nФамилия: " + update.Message.From.LastName +
-		"\nID: " + fmt.Sprintf("%d", update.Message.From.ID)
-
-	logUsers.Println("\n'Пользователь'\n" + message + "\n")
-	usersCount++
-
-	return message
-}
-
 // sendMembers Отправляет статистику по пользователям
 func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 	var message string
@@ -82,8 +69,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 	case "users":
 		if arg == "all" {
 			for _, v := range users {
-				message += v
-				message += "\n\n"
+				message += loader.WriteUsers(v) + "\n\n"
 			}
 		}
 
@@ -243,7 +229,7 @@ func main() {
 	}
 
 	loader.LoadUserGroup(userGroup)
-	loader.LoadUsers(users)
+	usersCount, err = loader.LoadUsers(users)
 	loader.LoadChats(chats)
 	loader.LoadSchedule(scheduleMap)
 
@@ -265,15 +251,16 @@ func main() {
 			}
 		}
 
-		_, ok := users[update.Message.From.ID]
-		if !ok {
-			n := newUser(&update)
-			users[update.Message.From.ID] = n
+		m, ok, err := loader.NewUserInfo(users, &update)
+		if err != nil {
+			logAll.Print(err)
+		}
 
-			_, err := bot.Send(tgbotapi.NewMessage(myId, "Новый пользователь!\n"+n))
-			if err != nil {
-				logAll.Print("newUser:", err)
-			}
+		if ok {
+			bot.Send(tgbotapi.NewMessage(myId, "Новый пользователь!\n"+m))
+			usersCount++
+		} else {
+			loader.ReloadUserDate(users, update.Message.From.ID)
 		}
 
 		if update.Message.Chat.IsGroup() || update.Message.Chat.IsChannel() || update.Message.Chat.IsSuperGroup() {
