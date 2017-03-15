@@ -2,6 +2,7 @@ package main
 
 import (
 	"TelegramBot/customers"
+	"TelegramBot/jokes"
 	"TelegramBot/loader"
 	"TelegramBot/schedule"
 	"TelegramBot/weather"
@@ -17,6 +18,7 @@ var chats = make(map[int64]string)
 var users = make(map[int]string)
 var userGroup = make(map[int]string)
 var scheduleMap = make(map[string][7]string)
+var anekdotsBase = make(map[int]bool)
 
 // Хранят количество пользователей
 var chatsCount int
@@ -28,16 +30,29 @@ var lkDate string
 
 // Рабочие переменные
 var weatherText string = "Погода временно недоступна, попробуйте чуть позднее."
-var logFileName string
 var timeToStart string
 
 // Логгеры
-var logUsers *log.Logger
 var logAll *log.Logger
 
 // Личные данные
 const myId = 227605930
 const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
+
+func SendAnekdotsAll(bot *tgbotapi.BotAPI) error {
+	for {
+		joke, err := jokes.GetAnekdots()
+		if err == nil {
+			for i, v := range anekdotsBase {
+				if v {
+					bot.Send(tgbotapi.NewMessage(int64(i), joke))
+				}
+			}
+		}
+
+		time.Sleep(time.Minute * 30)
+	}
+}
 
 // newChat Возвращает строку с новым каналом
 func newChat(chat *tgbotapi.Chat) string {
@@ -48,7 +63,6 @@ func newChat(chat *tgbotapi.Chat) string {
 		"\nID: " + fmt.Sprintf("%d", chat.ID) +
 		"\nТип: " + chat.Type
 
-	logUsers.Println("\n'Чат'\n" + message + "\n")
 	chatsCount++
 
 	return message
@@ -63,7 +77,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		message += "/users <_|all> - Выводит статистику по пользователям.\n" +
 			"/groups <_|all> - Выводит статистику по каналам.\n" +
 			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды.\n" +
-			"/sendmelog <data|log> - Присылает файл с логами.\n" +
+			"/sendmelog <data> - Присылает файл с логами.\n" +
 			"/sendall <текст> - Делает рассылку текста. \n" +
 			"/reset - Завершает текущую сессию бота."
 	case "users":
@@ -101,7 +115,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		logAll.Print("Обновлена строка температуры на: " + weatherText)
 		message += "Готово!\n" + "'" + weatherText + "'"
 	case "sendmelog":
-		if arg == "data" || arg == "log" {
+		if arg == "data" {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Отправляю..."))
 			if err != nil {
 				logAll.Print("Что-то пошло не так при sendmelog", err)
@@ -112,12 +126,10 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 			switch arg {
 			case "data":
 				name = timeToStart
-			case "log":
-				name = logFileName
 			}
 			_, err = bot.Send(tgbotapi.NewDocumentUpload(myId, name))
 			if err != nil {
-				_, err = bot.Send(tgbotapi.NewMessage(myId, "Не удаловь отправить файл."))
+				_, err = bot.Send(tgbotapi.NewMessage(myId, "Не удалось отправить файл."))
 				if err != nil {
 					logAll.Print("С отправкой файла всё плохо.")
 				}
@@ -126,8 +138,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 			}
 		} else {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Попробуй ещё раз ввести аргументы правильно:\n"+
-				"'data' - Файл полного лога.\n"+
-				"'log' - Файл с пользователями."))
+				"'data' - Файл полного лога."))
 			if err != nil {
 				logAll.Print("Что-то пошло не так", err)
 			}
@@ -148,7 +159,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 func main() {
 	var err error
 
-	logFileName, timeToStart, err = loader.LoadLoggers(&logUsers, &logAll)
+	timeToStart, err = loader.LoadLoggers(&logAll)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -212,6 +223,8 @@ func main() {
 			time.Sleep(time.Minute)
 		}
 	}()
+
+	go SendAnekdotsAll(bot)
 
 	logAll.Printf("Бот %s запущен.", bot.Self.UserName)
 
@@ -326,6 +339,17 @@ func main() {
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 1, update.Message.From.ID))
 			case "setgroup":
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(scheduleMap, userGroup, update.Message.From.ID, update.Message.CommandArguments()))
+			case "joke":
+				joke, err := jokes.GetAnekdots()
+				if err == nil {
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, joke)
+				}
+			case "jokeon":
+				anekdotsBase[update.Message.From.ID] = true
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Вы согласились на рассылку анекдотов.")
+			case "jokeoff":
+				anekdotsBase[update.Message.From.ID] = false
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Вы отказались от рассылки анекдотов.")
 			default:
 				nilMsg = true
 

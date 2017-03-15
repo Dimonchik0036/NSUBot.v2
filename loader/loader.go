@@ -24,30 +24,16 @@ var UserFileName string = "users_info.txt"
 var TimeFormat string = "02.01.06 15:04:10"
 
 // LoadLoggers Инициализирует логгеры.
-func LoadLoggers(logUser **log.Logger, logAll **log.Logger) (filenameLogUsers string, filenameLogAll string, err error) {
-	filenameLogUsers = "logUsers.txt"
+func LoadLoggers(logAll **log.Logger) (filenameLogAll string, err error) {
 	filenameLogAll = time.Now().Format("020106_1504") + ".txt"
 
 	fileLoggerAll, err := os.OpenFile(filenameLogAll, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
-		return "", "", errors.New("Не удалось открыть файл: " + filenameLogAll)
+		return "", errors.New("Не удалось открыть файл: " + filenameLogAll)
 	}
 
 	*logAll = log.New(fileLoggerAll, "", log.LstdFlags)
 	(*logAll).Println("Начинаю.")
-
-	fileLogUsers, err := os.OpenFile(filenameLogUsers, os.O_CREATE|os.O_RDWR, os.ModePerm)
-	if err != nil {
-		return "", "", errors.New("Не удалось открыть файл: " + filenameLogUsers)
-	}
-
-	_, err = fileLogUsers.Seek(0, os.SEEK_END)
-	if err != nil {
-		return "", "", errors.New("Не удалось перейти в конец файла.")
-	}
-
-	*logUser = log.New(fileLogUsers, "", log.LstdFlags)
-	(*logUser).Println("\n<<<<<<Начало новой сессии>>>>>\n")
 
 	return
 }
