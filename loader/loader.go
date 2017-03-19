@@ -109,6 +109,21 @@ func LoadUsers(users map[int]string) (int, error) {
 	return countUsers, nil
 }
 
+func UpdateUserInfo(users map[int]string) error {
+	userFile, err := os.OpenFile(UserFileName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range users {
+		userFile.WriteString(v + "\n")
+	}
+
+	err = userFile.Close()
+
+	return err
+}
+
 // NewUserInfo Возвращает строку с новым пользователем
 func NewUserInfo(users map[int]string, update *tgbotapi.Update) (string, bool, error) {
 	_, ok := users[update.Message.From.ID]
