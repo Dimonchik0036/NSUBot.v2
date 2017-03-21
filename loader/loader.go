@@ -1,6 +1,8 @@
 package loader
 
 import (
+	"TelegramBot/customers"
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -50,34 +52,51 @@ func WriteUsers(mess string) string {
 }
 
 // LoadUserGroup Загружает данные о запомненных группах.
-func LoadUserGroup(userGroup map[int]string) (string, error) {
-	userGroup[227605930] = "16211.1" // Создатель
+func LoadUserGroup(scheduleMap map[string][7]string, userGroup map[int]customers.UserGroup) error {
+	userfile, err := os.OpenFile(customers.LabelsFile, os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return nil
+	}
 
-	userGroup[221524772] = "16361.1" //Паша Тырышкин
-	userGroup[215065513] = "16207.1" //Рома Терехов
-	userGroup[61219035] = "16209.1"  //Женя Макрушин
-	userGroup[250493282] = "16211.1" //Юля Красник
-	userGroup[238697588] = "16941.2" //George K
-	userGroup[172833377] = "15808.1" //Piligrim_hola
-	userGroup[149906245] = "15808.1" //Maria Petlina
-	userGroup[185802556] = "15809.1" //Яша Филологический
-	userGroup[200867264] = "14304.1" //Saint Pilgrimage
-	userGroup[258540109] = "13504.1" //Alexey Taratenko
-	userGroup[1469626] = "14308.1"   //Iwan 茴_茴
-	userGroup[254438520] = "16134.1" //Vladislav Rublev
-	userGroup[161872635] = "16209.1" //Кирилл Полушин
-	userGroup[204767177] = "13121.1" //Алексей Р.
-	userGroup[693712] = "14203.1"    //Николай Березовский
-	userGroup[338030847] = "16203.1" //Fedor Pushkov
+	decUsers := json.NewDecoder(userfile)
 
-	return "", nil
+	for {
+		var u customers.UserGroupLabels
+
+		if err := decUsers.Decode(&u); err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		decLabels := json.NewDecoder(bytes.NewReader([]byte(u.Labels)))
+
+		for {
+			var l customers.UserLabels
+
+			if err := decLabels.Decode(&l); err == io.EOF {
+				break
+			} else if err != nil {
+				return err
+			}
+
+			customers.AddGroupNumber(scheduleMap, userGroup, u.Id, l.Group+" "+l.Label)
+		}
+	}
+
+	err = userfile.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // LoadUsers Загружает данные о пользователях.
 func LoadUsers(users map[int]string) (int, error) {
 	userfile, err := os.OpenFile(UserFileName, os.O_RDWR, os.ModePerm)
 	if err != nil {
-		return 0, err
+		return 0, nil
 	}
 
 	var countUsers int

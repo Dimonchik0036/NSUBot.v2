@@ -1,6 +1,7 @@
 package schedule
 
 import (
+	"TelegramBot/customers"
 	"errors"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
@@ -331,22 +332,24 @@ func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *strin
 }
 
 // PrintSchedule Возвращает расписание.
-func PrintSchedule(scheduleMap map[string][7]string, userGroup map[int]string, name string, offset int, id int) string {
-	if len(name) > 16 {
+func PrintSchedule(scheduleMap map[string][7]string, userGroup map[int]customers.UserGroup, group string, offset int, id int) string {
+	if len(group) > 16 {
 		return "Введите корректный номер группы."
 	}
 
-	if name == "" {
-		n, ok := userGroup[id]
-		if ok {
-			name = n
-		}
+	if group == "" {
+		group = "0"
 	}
 
-	v, ok := scheduleMap[name]
+	defaultGroup, ok := userGroup[id].Group[group]
+	if ok {
+		group = defaultGroup
+	}
+
+	v, ok := scheduleMap[group]
 	if !ok {
-		name += ".1"
-		v, ok = scheduleMap[name]
+		group += ".1"
+		v, ok = scheduleMap[group]
 		if !ok {
 			return "Неверно задан номер группы. Воспользуйтесь /help или /faq для помощи."
 		}

@@ -16,7 +16,7 @@ import (
 // Хранят основную информацию
 var chats = make(map[int64]string)
 var users = make(map[int]string)
-var userGroup = make(map[int]string)
+var userGroup = make(map[int]customers.UserGroup)
 var scheduleMap = make(map[string][7]string)
 var anekdotsBase = make(map[int]bool)
 
@@ -38,6 +38,45 @@ var logAll *log.Logger
 // Личные данные
 const myId = 227605930
 const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
+
+func getHelp(arg string) (text string) {
+	switch arg {
+	case "setgroup":
+		text = "Команда позволяет назначить группу для быстрого доступа.\n" +
+			"Если ввести \"/setgroup <номер группы>\", то эта группа будет вызываться по умолчанию, " +
+			"тоесть можно будет писать /today или /tomorrow без каких либо номеров групп.\n\n" +
+			"Команда \"/setgroup <номер группы>  <метка>\" позволяет привязать группу к какой-то метке, " +
+			"в качестве метки может выступать любая последовательность символов, не содержащая пробелов.\n" +
+			"Чтобы воспрользоваться метками, достаточно ввести \"/today <метка>\" или \"/tomorrow <метка>\"."
+	case "today", "tomorrow":
+		text = "/today <номер группы | метка> - Показывает расписание занятий на сегодня.\n" +
+			"/tomorrow <номер группы | метка> - Показывает расписание занятий на завтра.\n\n" +
+			"Для вызова этих команд необходимо ввести номер группы. Если воспользоваться командой /setgroup, " +
+			"то появится возможность использовать метки вместо номера группы, либо вовсе не писать ничего, " +
+			"если добавить свою группу в стандартные (подробнее можно прочитать в \"/help setgroup\")."
+	case "weather":
+		text = "/weather - Показать температуру воздуха около НГУ."
+	case "labels":
+		text = "/labels - Показывает записанные метки."
+	case "clearlabels":
+		text = "/clearlabels - Очищает все метки, кроме стандартной."
+	default:
+		text = "Список команд:\n" +
+			"/help - Показать список команд\n\n" +
+			"/weather - Показать температуру воздуха около НГУ\n\n" +
+			"/today <номер группы | метка> - Показывает расписание занятий конкретной группы, пример: /today 16211.1\n\n" +
+			"/tomorrow <номер группы | метка> - Показывает расписание занятий конкретной группы на завтра, пример: /tomorrow 16211.1\n\n" +
+			"/setgroup <номер группы + метка> - Устанавливает номер группы для быстрого доступа. Например, если ввести /setgroup 16211.1," +
+			" то при использовании /today или /tomorrow без аргументов, будет показываться расписание группы 16211.1\n\n" +
+			"/labels - Показывает записанные метки.\n\n" +
+			"/clearlabels - Очищает все метки, кроме стандартной.\n\n" +
+			"/faq - Типичные вопросы и ответы на них.\n\n" +
+			"Для подробного описания команд, введите \"/help <команда>\"\n\n" +
+			"P.S. Значёк <|> в расписании показывает, что это двойная пара. Отображение только текущей недели будет добавлено чуть позже."
+	}
+
+	return text
+}
 
 func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	if update.Message.Chat.Type != "private" {
@@ -92,16 +131,7 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 				"Привет!\nЯ - бот, который способен показать температуру около НГУ и расписание занятий.\n"+
 					"Рекомендую воспользоваться командой /help, чтобы узнать все возможности. Если возникнут вопросы, то можно воспользоваться /faq.")
 		case "help":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID,
-				"Список команд:\n"+
-					"/help - Показать список команд\n\n"+
-					"/weather - Показать температуру воздуха около НГУ\n\n"+
-					"/today <номер группы> - Показывает расписание занятий конкретной группы, пример: /today 16211.1\n\n"+
-					"/tomorrow <номер группы> - Показывает расписание занятий конкретной группы на завтра, пример: /tomorrow 16211.1\n\n"+
-					"/setgroup <номер группы> - Устанавливает номер группы для быстрого доступа. Например, если ввести /setgroup 16211.1,"+
-					" то при использовании /today или /tomorrow без аргументов, будет показываться расписание группы 16211.1\n\n"+
-					"/faq - Типичные вопросы и ответы на них.\n\n"+
-					"P.S. Значёк <|> показывает, что это двойная пара. Отображение только текущей недели будет добавлено чуть позже.")
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, getHelp(update.Message.CommandArguments()))
 		case "faq":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID,
 				"Q: Можно ли пользоваться командой /today и /tomorrow и не вводить номер группы каждый раз?\n"+
@@ -128,6 +158,10 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 1, update.Message.From.ID))
 		case "setgroup":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(scheduleMap, userGroup, update.Message.From.ID, update.Message.CommandArguments()))
+		case "labels":
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(userGroup[update.Message.From.ID].Group))
+		case "clearlabels":
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeletUserLabels(userGroup[update.Message.From.ID]))
 		case "joke":
 			joke, err := jokes.GetAnekdots()
 			if err == nil {
@@ -201,7 +235,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		message += "/users <_ | all> - Выводит статистику по пользователям.\n" +
 			"/groups <_ | all> - Выводит статистику по каналам.\n" +
 			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды.\n" +
-			"/sendmelog <data | users> - Присылает файл с логами.\n" +
+			"/sendmelog <data | users | labels> - Присылает файл с логами.\n" +
 			"/sendall <текст> - Делает рассылку текста. \n" +
 			"/reset - Завершает текущую сессию бота."
 	case "users":
@@ -239,7 +273,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		logAll.Print("Обновлена строка температуры на: " + weatherText)
 		message += "Готово!\n" + "'" + weatherText + "'"
 	case "sendmelog":
-		if arg == "data" || arg == "users" {
+		if arg == "data" || arg == "users" || arg == "labels" {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Отправляю..."))
 			if err != nil {
 				logAll.Print("Что-то пошло не так при sendmelog", err)
@@ -252,6 +286,8 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 				name = timeToStart
 			case "users":
 				name = loader.UserFileName
+			case "labels":
+				name = customers.LabelsFile
 			}
 			_, err = bot.Send(tgbotapi.NewDocumentUpload(myId, name))
 			if err != nil {
@@ -265,7 +301,8 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		} else {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Попробуй ещё раз ввести аргументы правильно:\n"+
 				"'data' - Файл полного лога.\n"+
-				"'users' - файл с пользователями."))
+				"'users' - файл с пользователями.\n"+
+				"'labels' - файл с метками."))
 			if err != nil {
 				logAll.Print("Что-то пошло не так", err)
 			}
@@ -293,7 +330,7 @@ func main() {
 
 	bot, err := tgbotapi.NewBotAPI(botToken)
 	if err != nil {
-		logAll.Panic("Бот в отпуске:", err)
+		logAll.Fatal("Бот в отпуске: ", err)
 	}
 
 	bot.Debug = false
@@ -301,7 +338,7 @@ func main() {
 	info, err := schedule.GetAllSchedule(scheduleMap, "GK", &gkDate, &lkDate)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с GK"))
-		logAll.Panic("GK")
+		logAll.Fatal("GK")
 	} else {
 		logAll.Print(info)
 	}
@@ -309,7 +346,7 @@ func main() {
 	info, err = schedule.GetAllSchedule(scheduleMap, "LK", &gkDate, &lkDate)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с LK"))
-		logAll.Panic("LK")
+		logAll.Fatal("LK")
 	} else {
 		logAll.Print(info)
 	}
@@ -363,7 +400,7 @@ func main() {
 
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		logAll.Panic(err)
+		logAll.Fatal(err)
 	}
 
 	usersCount, err = loader.LoadUsers(users)
@@ -372,7 +409,7 @@ func main() {
 	}
 
 	loader.LoadChats(chats)
-	loader.LoadUserGroup(userGroup)
+	loader.LoadUserGroup(scheduleMap, userGroup)
 	loader.LoadSchedule(scheduleMap)
 
 	go SendAnekdotsAll(bot)
@@ -382,6 +419,7 @@ func main() {
 			time.Sleep(7 * time.Minute)
 
 			loader.UpdateUserInfo(users)
+			customers.UpdateUserLabels(userGroup)
 		}
 	}()
 
