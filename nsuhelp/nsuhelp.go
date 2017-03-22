@@ -9,6 +9,9 @@ import (
 	"regexp"
 )
 
+var LatestPosts [5]string
+var UsersNsuHelp = make(map[int]bool)
+
 func GetLatestPosts() ([5]string, error) {
 	var er [5]string
 	res, err := http.Get("https://vk.com/nsuhelp")
@@ -55,7 +58,6 @@ func GetLatestPosts() ([5]string, error) {
 		return er, err
 	}
 
-	
 	var result [5]string
 	for i, v := range postText {
 		if len(v) > 16 {
@@ -86,4 +88,23 @@ func GetLatestPosts() ([5]string, error) {
 	}
 
 	return result, nil
+}
+
+func GetNewPosts() []string {
+	p, err := GetLatestPosts()
+	if err != nil {
+		return nil
+	}
+
+	if p[0] == LatestPosts[0] {
+		return nil
+	}
+
+	var index int
+	for ; (index < 5) && (p[0] != LatestPosts[index]); index++ {
+	}
+
+	LatestPosts = p
+
+	return p[:index]
 }

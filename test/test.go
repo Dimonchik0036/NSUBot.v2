@@ -1,20 +1,21 @@
 package main
 
 import (
+	"TelegramBot/nsuhelp"
 	"bufio"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"golang.org/x/net/html"
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"TelegramBot/nsuhelp"
+	"time"
 )
 
 const myId = 227605930
 const botToken = "325933326:AAFWjDWFPKFjAMg9MDr_Av-g643F_UhJmNY"
 
 // SearchWeather Возвращает строку с температурой, в противном случае ошибку.
-func parseng() [5] string {
+func parseng() [5]string {
 	var er [5]string
 	res, err := http.Get("https://vk.com/nsuhelp?offset=10&own=1#posts")
 	if err != nil {
@@ -50,7 +51,7 @@ func parseng() [5] string {
 		return er
 	}
 	var result [5]string
-	for i, v := range answer{
+	for i, v := range answer {
 		v = v[10 : len(v)-6]
 		if byte(v[0]) == ' ' {
 			v = v[1:]
@@ -63,10 +64,8 @@ func parseng() [5] string {
 		}
 		hrefText := hrefReg.FindString(wi_answer[i])
 
-		result[i] = v + "\n\n"+"vk.com"+hrefText[6:len(hrefText)-1]+"\n\n"
+		result[i] = v + "\n\n" + "vk.com" + hrefText[6:len(hrefText)-1] + "\n\n"
 	}
-
-
 
 	return result
 }
@@ -90,13 +89,58 @@ func main() {
 		return
 	}
 
+	go func() {
+		for {
+			a := nsuhelp.GetNewPosts()
+			if len(a) != 0 {
+				for i, b := range nsuhelp.UsersNsuHelp {
+					if b {
+						for _, v := range a {
+							bot.Send(tgbotapi.NewMessage(int64(i), "Новый пост в \"Помогу в НГУ\":\n\n"+v))
+						}
+					}
+				}
+			}
+
+			time.Sleep(30 * time.Second)
+		}
+	}()
+
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
-		a, _ := nsuhelp.GetLatestPosts()
-		for _, v := range a {
-			bot.Send(tgbotapi.NewMessage(myId, "Новый пост в \"Помогу в НГУ\":\n"+v))
+
+		if update.Message.IsCommand() {
+			switch update.Message.Command() {
+			case "nsuhelpon":
+				_, ok := nsuhelp.UsersNsuHelp[update.Message.From.ID]
+				if !ok {
+					nsuhelp.UsersNsuHelp[update.Message.From.ID] = true
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы были подписаны на рассылку."))
+				} else {
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы уже подписаны на рассылку."))
+				}
+			case "nsuhelpoff":
+				_, ok := nsuhelp.UsersNsuHelp[update.Message.From.ID]
+				if !ok {
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы не были подписаны на рассылку."))
+				} else {
+					delete(nsuhelp.UsersNsuHelp, update.Message.From.ID)
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы были отписаны от рассылки."))
+				}
+			case "check":
+				switch update.Message.From.ID {
+				case myId:
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Чё надо, хозяин?"))
+				case 161872635:
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Кирилл, эта команда не для тебя!\n\nP.S. Жека пидор."))
+				case 61219035:
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Жека, не дудось!\n\nP.S. Кирилл пидор."))
+				default:
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Дай копейку на дошик одмину."))
+				}
+			}
 		}
 	}
 }
