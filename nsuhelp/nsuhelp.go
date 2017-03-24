@@ -97,19 +97,24 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 	//log.Print(index1Text)
 	//log.Print(index2Text)
 
-	if len(index1Text) < CountPost || len(index1Text) != len(index2Text) {
+	if len(index1Text) == 0 || len(index1Text) != len(index2Text) {
 		return er, errors.New("Мало постов.")
 	}
 
 	var result [CountPost][2]string
+	var k int
 
-	for i := 0; i < CountPost; i++ {
-		buffer := text[index1Text[CountPost-i-1][1]:index2Text[CountPost-i-1][0]]
-		if i == CountPost-1 {
-			if anchoredReg.FindString(buffer) == "" {
-				continue
-			}
+	if anchoredReg.FindString(text) == "" {
+		k = 1
+	}
+
+	for f := range index1Text {
+		if f+k == CountPost {
+			break
 		}
+
+		buffer := text[index1Text[f][1]:index2Text[f][0]]
+		i := f + k
 
 		result[i][0] = infoReg.FindString(buffer)
 		result[i][1] = textReg.FindString(buffer)
@@ -152,23 +157,23 @@ func GetNewPosts() (result [][2]string) {
 		return nil
 	}
 
-	if (p[0][0] == LatestPosts[0][0]) && (p[CountPost-1][0] == LatestPosts[CountPost-1][0]) {
+	if (p[1][0] == "" && p[0][0] == "") ||
+		(p[1][0] == LatestPosts[1][0]) && (p[0][0] == LatestPosts[0][0]) {
+
 		return nil
 	}
 
-	if p[0][0] == "" {
-		return nil
+	var index int = 1
+	for ; (index < CountPost) && (p[index][0] != LatestPosts[1][0]); index++ {
 	}
 
-	var index int
-	for ; (index < CountPost-1) && (p[0][0] != LatestPosts[index][0]); index++ {
+	tmp := p[1:index]
+	for i := len(tmp) - 1; i >= 0; i-- {
+		result = append(result, tmp[i])
 	}
-	//log.Print("Индекс: ", index)
 
-	result = p[:index]
-
-	if p[CountPost-1][0] != LatestPosts[CountPost-1][0] {
-		last := p[CountPost-1]
+	if p[0][0] != LatestPosts[0][0] {
+		last := p[0]
 		last[0] += "\nЗакреплённая запись."
 		result = append(result, last)
 	}
