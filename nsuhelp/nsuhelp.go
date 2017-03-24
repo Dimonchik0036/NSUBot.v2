@@ -1,6 +1,7 @@
 package nsuhelp
 
 import (
+	"TelegramBot/mymodule"
 	"bufio"
 	"errors"
 	"golang.org/x/net/html"
@@ -10,9 +11,12 @@ import (
 )
 
 const CountPost = 5
+const FileUsersSubscriptions = "users_subscriptions.txt"
+const Yes = 1
+const No = 0
 
 var LatestPosts [CountPost][2]string
-var UsersNsuHelp = make(map[int]bool)
+var UsersNsuHelp = make(map[int]int)
 
 var DefaulGroup = "nsuhelp"
 
@@ -46,16 +50,6 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 		return er, err
 	}
 
-	index1Reg, err := regexp.Compile("<div class=\"wall_item\"")
-	if err != nil {
-		return er, err
-	}
-
-	index2Reg, err := regexp.Compile("<div class=\"wi_buttons\"")
-	if err != nil {
-		return er, err
-	}
-
 	anchoredReg, err := regexp.Compile("<div class=\"wi_explain\"")
 	if err != nil {
 		return er, err
@@ -66,23 +60,12 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 		return er, err
 	}
 
-	spaceReg, err := regexp.Compile("<.+?>")
-	if err != nil {
-		return er, err
-	}
-
-	brReg, err := regexp.Compile("<br/>")
-	if err != nil {
-		return er, err
-	}
-
 	titleReg, err := regexp.Compile("<title>.*</title>")
 	if err != nil {
 		return er, err
 	}
 
 	text := html.UnescapeString(string(textBody))
-	//println(text)
 
 	titleText := titleReg.FindString(text)
 	if titleText == "" {
@@ -91,14 +74,9 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 		titleText = titleText[7 : len(titleText)-8]
 	}
 
-	index1Text := index1Reg.FindAllStringIndex(text, CountPost)
-	index2Text := index2Reg.FindAllStringIndex(text, CountPost)
-
-	//log.Print(index1Text)
-	//log.Print(index2Text)
-
-	if len(index1Text) == 0 || len(index1Text) != len(index2Text) {
-		return er, errors.New("Мало постов.")
+	index1Text, index2Text, err := mymodule.SearchBeginEnd(text, "<div class=\"wall_item\"", "<div class=\"wi_buttons\"", CountPost)
+	if err != nil {
+		return er, err
 	}
 
 	var result [CountPost][2]string
@@ -119,8 +97,6 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 		result[i][0] = infoReg.FindString(buffer)
 		result[i][1] = textReg.FindString(buffer)
 
-		//log.Print(i, result[i][0]+"\n"+result[i][1])
-
 		if len(result[i][1]) > 16 {
 			result[i][1] = result[i][1][10 : len(result[i][1])-6]
 		}
@@ -130,12 +106,14 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 				result[i][1] = result[i][1][1:]
 			}
 
-			for index := brReg.FindStringIndex(result[i][1]); len(index) > 0; index = brReg.FindStringIndex(result[i][1]) {
-				result[i][1] = result[i][1][:index[0]] + "\n" + result[i][1][index[1]:]
+			result[i][1], err = mymodule.ChangeSymbol(result[i][1], "\n", "<br/>")
+			if err != nil {
+				return er, err
 			}
 
-			for index := spaceReg.FindStringIndex(result[i][1]); len(index) > 0; index = spaceReg.FindStringIndex(result[i][1]) {
-				result[i][1] = result[i][1][:index[0]] + result[i][1][index[1]:]
+			result[i][1], err = mymodule.ChangeSymbol(result[i][1], "", "<.+?>")
+			if err != nil {
+				return er, err
 			}
 		}
 
@@ -190,4 +168,30 @@ func GetGroupPost(groupName string) ([CountPost][2]string, error) {
 	}
 
 	return p, err
+}
+
+func ChangeSubscriptions(id int) string {
+	v, ok := UsersNsuHelp[id]
+	if !ok {
+		UsersNsuHelp[id] = Yes
+		return "Вы были подписаны на рассылку."
+	} else {
+		if v != 0 {
+			UsersNsuHelp[id] = No
+			return "Вы были отписаны от рассылки."
+		} else {
+			UsersNsuHelp[id] = Yes
+			return "Вы были подписаны на рассылку."
+		}
+	}
+}
+
+func ChangeDefaultGroup(group string) string {
+	_, err := GetGroupPost(group)
+	if err == nil {
+		DefaulGroup = group
+		return "Готово."
+	} else {
+		return "Группа не валидна."
+	}
 }

@@ -61,30 +61,7 @@ func main() {
 		if update.Message.IsCommand() {
 			switch update.Message.Command() {
 			case "nsuhelp":
-				v, ok := nsuhelp.UsersNsuHelp[update.Message.From.ID]
-				if !ok {
-					nsuhelp.UsersNsuHelp[update.Message.From.ID] = true
-					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы были подписаны на рассылку."))
-				} else {
-					if v {
-						delete(nsuhelp.UsersNsuHelp, update.Message.From.ID)
-						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы были отписаны от рассылки."))
-					} else {
-						nsuhelp.UsersNsuHelp[update.Message.From.ID] = true
-						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Вы были подписаны на рассылку."))
-					}
-				}
-			case "check":
-				switch update.Message.From.ID {
-				case myId:
-					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Чё надо, хозяин?"))
-				case 161872635:
-					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Кирилл, эта команда не для тебя!\n\nP.S. Жека пидор."))
-				case 61219035:
-					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Жека, не дудось!\n\nP.S. Кирилл пидор."))
-				default:
-					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Дай копейку на дошик одмину."))
-				}
+				bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, nsuhelp.ChangeSubscriptions(update.Message.From.ID)))
 			case "post":
 				a, err := nsuhelp.GetGroupPost(update.Message.CommandArguments())
 				if err == nil {
@@ -100,13 +77,6 @@ func main() {
 				}
 			case "default":
 				if (update.Message.From.ID == myId) && (update.Message.CommandArguments() != "") {
-					_, err := nsuhelp.GetGroupPost(update.Message.CommandArguments())
-					if err == nil {
-						nsuhelp.DefaulGroup = update.Message.CommandArguments()
-						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Готово."))
-					} else {
-						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Нужно больше золота."))
-					}
 
 				}
 			}

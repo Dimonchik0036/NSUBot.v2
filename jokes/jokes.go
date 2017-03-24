@@ -1,6 +1,7 @@
 package jokes
 
 import (
+	"TelegramBot/nsuhelp"
 	"golang.org/x/net/html"
 	"io/ioutil"
 	"net/http"
@@ -8,7 +9,9 @@ import (
 	"regexp"
 )
 
-func GetAnekdots() (string, error) {
+var JokeBase = make(map[int]int)
+
+func GetJokes() (string, error) {
 	res, err := http.Get("https://www.anekdot.ru/random/anekdot/")
 	if err != nil {
 		return "", err
@@ -53,4 +56,20 @@ func GetAnekdots() (string, error) {
 	}
 
 	return text, nil
+}
+
+func ChangeJokeSubscriptions(id int) string {
+	v, ok := JokeBase[id]
+	if !ok {
+		JokeBase[id] = nsuhelp.Yes
+		return "Вы были подписаны на рассылку."
+	} else {
+		if v != 0 {
+			JokeBase[id] = nsuhelp.No
+			return "Вы были отписаны от рассылки."
+		} else {
+			JokeBase[id] = nsuhelp.Yes
+			return "Вы были подписаны на рассылку."
+		}
+	}
 }

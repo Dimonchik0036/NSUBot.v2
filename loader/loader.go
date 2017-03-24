@@ -2,6 +2,8 @@ package loader
 
 import (
 	"TelegramBot/customers"
+	"TelegramBot/jokes"
+	"TelegramBot/nsuhelp"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -22,12 +24,93 @@ type UserInfo struct {
 	ID             int    `json:"ID"`
 }
 
+type Subscriptions struct {
+	Id        int    `json:"ID"`
+	Group     string `json:"Group"`
+	Selection int    `json:"Selection"`
+}
+
 var UserFileName string = "users_info.txt"
 var TimeFormat string = "02.01.06 15:04:10"
 
+func LoadUsersSubscriptions() error {
+	userFile, err := os.OpenFile(nsuhelp.FileUsersSubscriptions, os.O_RDWR, os.ModePerm)
+	if err != nil {
+		return nil
+	}
+
+	decUsers := json.NewDecoder(userFile)
+
+	for {
+		var s Subscriptions
+
+		if err := decUsers.Decode(&s); err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		switch s.Group {
+		case "nsuhelp":
+			nsuhelp.UsersNsuHelp[s.Id] = s.Selection
+		case "jokes":
+			jokes.JokeBase[s.Id] = s.Selection
+		}
+	}
+
+	err = userFile.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateUserSubscriptions() error {
+	userFile, err := os.OpenFile(nsuhelp.FileUsersSubscriptions, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	var s Subscriptions
+	for i, v := range nsuhelp.UsersNsuHelp {
+		s.Id = i
+		s.Selection = v
+		s.Group = "nsuhelp"
+
+		b, err := json.Marshal(s)
+		if err != nil {
+			return err
+		}
+
+		b = append(b, '\n')
+
+		userFile.Write(b)
+	}
+
+	for i, v := range nsuhelp.UsersNsuHelp {
+		s.Id = i
+		s.Selection = v
+		s.Group = "jokes"
+
+		b, err := json.Marshal(s)
+		if err != nil {
+			return err
+		}
+
+		b = append(b, '\n')
+
+		userFile.Write(b)
+	}
+
+	err = userFile.Close()
+
+	return err
+}
+
 // LoadLoggers Инициализирует логгеры.
 func LoadLoggers(logAll **log.Logger) (filenameLogAll string, err error) {
-	filenameLogAll = time.Now().Format("020106_1504") + ".txt"
+	filenameLogAll = time.Now().Format("2006-01-02T15-04") + ".txt"
 
 	fileLoggerAll, err := os.OpenFile(filenameLogAll, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"TelegramBot/customers"
 	"TelegramBot/jokes"
 	"TelegramBot/loader"
+	"TelegramBot/nsuhelp"
 	"TelegramBot/schedule"
 	"TelegramBot/weather"
 	"fmt"
@@ -18,7 +19,6 @@ var chats = make(map[int64]string)
 var users = make(map[int]string)
 var userGroup = make(map[int]customers.UserGroup)
 var scheduleMap = make(map[string][7]string)
-var anekdotsBase = make(map[int]bool)
 
 // Хранят количество пользователей
 var chatsCount int
@@ -43,14 +43,15 @@ func getHelp(arg string) (text string) {
 	switch arg {
 	case "setgroup":
 		text = "Команда позволяет назначить группу для быстрого доступа.\n" +
+			"Например, если ввести \"/setgroup 16211.1\", то при использовании /today или /tomorrow без аргументов, будет показываться расписание группы 16211.1\n\n" +
 			"Если ввести \"/setgroup <номер группы>\", то эта группа будет вызываться по умолчанию, " +
 			"тоесть можно будет писать /today или /tomorrow без каких либо номеров групп.\n\n" +
 			"Команда \"/setgroup <номер группы>  <метка>\" позволяет привязать группу к какой-то метке, " +
 			"в качестве метки может выступать любая последовательность символов, не содержащая пробелов.\n" +
 			"Чтобы воспрользоваться метками, достаточно ввести \"/today <метка>\" или \"/tomorrow <метка>\"."
 	case "today", "tomorrow":
-		text = "/today <номер группы | метка> - Показывает расписание занятий на сегодня.\n" +
-			"/tomorrow <номер группы | метка> - Показывает расписание занятий на завтра.\n\n" +
+		text = "/today <номер группы | метка> - Показывает расписание занятий на сегодня, пример: \"/today 16211.1\".\n" +
+			"/tomorrow <номер группы | метка> - Показывает расписание занятий на завтра, пример: \"/tomorrow 16211.1\".\n\n" +
 			"Для вызова этих команд необходимо ввести номер группы. Если воспользоваться командой /setgroup, " +
 			"то появится возможность использовать метки вместо номера группы, либо вовсе не писать ничего, " +
 			"если добавить свою группу в стандартные (подробнее можно прочитать в \"/help setgroup\")."
@@ -60,18 +61,30 @@ func getHelp(arg string) (text string) {
 		text = "/labels - Показывает записанные метки."
 	case "clearlabels":
 		text = "/clearlabels - Очищает все метки, кроме стандартной."
+	case "feedback":
+		text = "/feedback <текст> - Оставить отзыв, который будет услышан."
+	case "nsuhelp":
+		text = "/nsuhelp - Управление подпиской на рассылку новостей из группы \"Помогу в НГУ\".\n\n" +
+			"Позволяет подписаться на рассылку новых новостей из группы \"Помогу в НГУ\"."
+	case "secret":
+		text = "ACHTUNG! Использование этих команд запрещено на территории РФ. Автор ответственности не несёт, используйте на свой страх и риск. \n\n" +
+			"/joke - Показывает бородатый анекдот.\n" +
+			"/subjoke - Подписывает на рассылку бородатых анекдотов. Именно их можно получить, используя /joke\n" +
+			"/post <ID группы в VK> - Показывает закреплённый и 4 обычных поста из этой группы VK.\n\n" +
+			"/creator - Используешь -> ? -> PROFIT!"
 	default:
 		text = "Список команд:\n" +
 			"/help - Показать список команд\n\n" +
 			"/weather - Показать температуру воздуха около НГУ\n\n" +
-			"/today <номер группы | метка> - Показывает расписание занятий конкретной группы, пример: /today 16211.1\n\n" +
-			"/tomorrow <номер группы | метка> - Показывает расписание занятий конкретной группы на завтра, пример: /tomorrow 16211.1\n\n" +
-			"/setgroup <номер группы + метка> - Устанавливает номер группы для быстрого доступа. Например, если ввести /setgroup 16211.1," +
-			" то при использовании /today или /tomorrow без аргументов, будет показываться расписание группы 16211.1\n\n" +
+			"/today <номер группы | метка> - Показывает расписание занятий конкретной группы.\n\n" +
+			"/tomorrow <номер группы | метка> - Показывает расписание занятий конкретной группы на завтра.\n\n" +
+			"/setgroup <номер группы + метка> - Устанавливает номер группы для быстрого доступа.\n\n" +
 			"/labels - Показывает записанные метки.\n\n" +
 			"/clearlabels - Очищает все метки, кроме стандартной.\n\n" +
+			"/nsuhelp - Управление подпиской на рассылку новостей из группы \"Помогу в НГУ\".\n\n" +
+			"/feedback <текст> - Оставить отзыв, который будет услышан.\n\n" +
 			"/faq - Типичные вопросы и ответы на них.\n\n" +
-			"Для подробного описания команд, введите \"/help <команда>\"\n\n" +
+			"Для подробного описания команд, введите \"/help <команда>\". Например, \"/help setgroup\".\n\n" +
 			"P.S. Значёк <|> в расписании показывает, что это двойная пара. Отображение только текущей недели будет добавлено чуть позже."
 	}
 
@@ -149,7 +162,7 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 
 					"Если у Вас остались ещё какие-то вопросы, то их можно задать мне @dimonchik0036.")
 		case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "@Dimonchik0036\ngithub.com/dimonchik0036")
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Мой телеграм: @Dimonchik0036\nМой github: github.com/dimonchik0036")
 		case "Погода", "weather", "погода", "Weather", "weather_nsu":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, weatherText)
 		case "today":
@@ -163,16 +176,34 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		case "clearlabels":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeletUserLabels(userGroup[update.Message.From.ID]))
 		case "joke":
-			joke, err := jokes.GetAnekdots()
+			joke, err := jokes.GetJokes()
 			if err == nil {
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, joke)
 			}
-		case "jokeon":
-			anekdotsBase[update.Message.From.ID] = true
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Вы согласились на рассылку анекдотов.")
-		case "jokeoff":
-			anekdotsBase[update.Message.From.ID] = false
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Вы отказались от рассылки анекдотов.")
+		case "subjoke":
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, jokes.ChangeJokeSubscriptions(update.Message.From.ID))
+		case "nsuhelp":
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, nsuhelp.ChangeSubscriptions(update.Message.From.ID))
+		case "post":
+			a, err := nsuhelp.GetGroupPost(update.Message.CommandArguments())
+			if err == nil {
+				if a[0][0] != "" {
+					for _, v := range a {
+						msg = tgbotapi.NewMessage(update.Message.Chat.ID, v[0]+"\n\n"+v[1])
+					}
+				} else {
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна.")
+				}
+			} else {
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна.")
+			}
+		case "feedback":
+			if update.Message.CommandArguments() != "" {
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за обратную связь.")
+				bot.Send(tgbotapi.NewMessage(myId, update.Message.CommandArguments()+"\n\nОтзыв от:\n"+loader.WriteUsers(users[update.Message.From.ID])))
+			} else {
+				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Вы забыли набрать сообщение.")
+			}
 		default:
 			nilMsg = true
 
@@ -181,7 +212,7 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		if !nilMsg {
 			_, err := bot.Send(msg)
 			if err != nil {
-				logAll.Print("Command:", err)
+				logAll.Print("Невозможно отправить: ", err)
 			}
 		}
 
@@ -197,12 +228,12 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	}
 }
 
-func SendAnekdotsAll(bot *tgbotapi.BotAPI) error {
+func SendJokesAll(bot *tgbotapi.BotAPI) error {
 	for {
-		joke, err := jokes.GetAnekdots()
+		joke, err := jokes.GetJokes()
 		if err == nil {
-			for i, v := range anekdotsBase {
-				if v {
+			for i, v := range jokes.JokeBase {
+				if v != 0 {
 					bot.Send(tgbotapi.NewMessage(int64(i), joke))
 				}
 			}
@@ -231,13 +262,16 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 	var message string
 
 	switch commands {
+	case "defaultgroup":
+		message = nsuhelp.ChangeDefaultGroup(arg)
 	case "help":
 		message += "/users <_ | all> - Выводит статистику по пользователям.\n" +
 			"/groups <_ | all> - Выводит статистику по каналам.\n" +
 			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды.\n" +
 			"/sendmelog <data | users | labels> - Присылает файл с логами.\n" +
 			"/sendall <текст> - Делает рассылку текста. \n" +
-			"/reset - Завершает текущую сессию бота."
+			"/reset - Завершает текущую сессию бота. \n" +
+			"/defaultgroup <id группы> - Изменяет отслеживаемую группу."
 	case "users":
 		if arg == "all" {
 			for _, v := range users {
@@ -411,8 +445,9 @@ func main() {
 	loader.LoadChats(chats)
 	loader.LoadUserGroup(scheduleMap, userGroup)
 	loader.LoadSchedule(scheduleMap)
+	loader.LoadUsersSubscriptions()
 
-	go SendAnekdotsAll(bot)
+	go SendJokesAll(bot)
 
 	go func() {
 		for {
@@ -420,6 +455,30 @@ func main() {
 
 			loader.UpdateUserInfo(users)
 			customers.UpdateUserLabels(userGroup)
+			loader.UpdateUserSubscriptions()
+		}
+	}()
+
+	go func() {
+		for {
+			a := nsuhelp.GetNewPosts()
+			if len(a) != 0 {
+				if a[0][0] != "" {
+					for i, b := range nsuhelp.UsersNsuHelp {
+						if b != 0 {
+							for _, v := range a {
+								if len(v[1]) > 4500 {
+									v[1] = v[1][:4500] + "\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
+								}
+								bot.Send(tgbotapi.NewMessage(int64(i), v[0]+"\n\n"+v[1]))
+							}
+						}
+					}
+
+				}
+			}
+
+			time.Sleep(33 * time.Second)
 		}
 	}()
 
