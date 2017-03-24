@@ -14,6 +14,8 @@ const CountPost = 5
 var LatestPosts [CountPost][2]string
 var UsersNsuHelp = make(map[int]bool)
 
+var DefaulGroup = "nsuhelp"
+
 func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 	var er [CountPost][2]string
 	if groupName == "" {
@@ -54,6 +56,11 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 		return er, err
 	}
 
+	anchoredReg, err := regexp.Compile("<div class=\"wi_explain\"")
+	if err != nil {
+		return er, err
+	}
+
 	hrefReg, err := regexp.Compile("href=\".+?\"")
 	if err != nil {
 		return er, err
@@ -75,6 +82,7 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 	}
 
 	text := html.UnescapeString(string(textBody))
+	//println(text)
 
 	titleText := titleReg.FindString(text)
 	if titleText == "" {
@@ -89,7 +97,7 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 	//log.Print(index1Text)
 	//log.Print(index2Text)
 
-	if len(index1Text) != CountPost || len(index2Text) != CountPost {
+	if len(index1Text) < CountPost || len(index1Text) != len(index2Text) {
 		return er, errors.New("Мало постов.")
 	}
 
@@ -97,6 +105,11 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 
 	for i := 0; i < CountPost; i++ {
 		buffer := text[index1Text[CountPost-i-1][1]:index2Text[CountPost-i-1][0]]
+		if i == CountPost-1 {
+			if anchoredReg.FindString(buffer) == "" {
+				continue
+			}
+		}
 
 		result[i][0] = infoReg.FindString(buffer)
 		result[i][1] = textReg.FindString(buffer)
@@ -134,7 +147,7 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 }
 
 func GetNewPosts() (result [][2]string) {
-	p, err := GetLatestPosts("nsuhelp")
+	p, err := GetLatestPosts(DefaulGroup)
 	if err != nil {
 		return nil
 	}
@@ -143,15 +156,21 @@ func GetNewPosts() (result [][2]string) {
 		return nil
 	}
 
+	if p[0][0] == "" {
+		return nil
+	}
+
 	var index int
-	for ; (index < CountPost) && (p[0][0] != LatestPosts[index][0]); index++ {
+	for ; (index < CountPost-1) && (p[0][0] != LatestPosts[index][0]); index++ {
 	}
 	//log.Print("Индекс: ", index)
 
 	result = p[:index]
 
-	if index < CountPost && (p[CountPost-1][0] != LatestPosts[CountPost-1][0]) {
-		result = append(result, p[CountPost-1])
+	if p[CountPost-1][0] != LatestPosts[CountPost-1][0] {
+		last := p[CountPost-1]
+		last[0] += "\nЗакреплённая запись."
+		result = append(result, last)
 	}
 
 	LatestPosts = p
@@ -159,12 +178,11 @@ func GetNewPosts() (result [][2]string) {
 	return
 }
 
-func GetGroupPost(groupName string) [CountPost][2]string {
+func GetGroupPost(groupName string) ([CountPost][2]string, error) {
 	p, err := GetLatestPosts(groupName)
 	if err != nil || p[0][0] == "" {
-		p[0][0] = "Не удалось сделать запрос в эту группу."
-		return p
+		return p, errors.New("Группа не валидна.")
 	}
 
-	return p
+	return p, err
 }

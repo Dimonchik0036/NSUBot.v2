@@ -28,16 +28,19 @@ func main() {
 		return
 	}
 
+	nsuhelp.UsersNsuHelp[myId] = true
+
 	go func() {
 		for {
-			time.Sleep(59 * time.Second)
-
 			a := nsuhelp.GetNewPosts()
 			if len(a) != 0 {
 				if a[0][0] != "" {
 					for i, b := range nsuhelp.UsersNsuHelp {
 						if b {
 							for _, v := range a {
+								if len(v[1]) > 4500 {
+									v[1] = v[1][:4500] + "\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
+								}
 								bot.Send(tgbotapi.NewMessage(int64(i), v[0]+"\n\n"+v[1]))
 							}
 						}
@@ -45,6 +48,8 @@ func main() {
 
 				}
 			}
+
+			time.Sleep(57 * time.Minute)
 		}
 	}()
 
@@ -81,13 +86,28 @@ func main() {
 					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Дай копейку на дошик одмину."))
 				}
 			case "post":
-				a := nsuhelp.GetGroupPost(update.Message.CommandArguments())
-				if len(a) != 0 {
+				a, err := nsuhelp.GetGroupPost(update.Message.CommandArguments())
+				if err == nil {
 					if a[0][0] != "" {
 						for _, v := range a {
 							bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, v[0]+"\n\n"+v[1]))
 						}
+					} else {
+						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна."))
 					}
+				} else {
+					bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна."))
+				}
+			case "default":
+				if (update.Message.From.ID == myId) && (update.Message.CommandArguments() != "") {
+					_, err := nsuhelp.GetGroupPost(update.Message.CommandArguments())
+					if err == nil {
+						nsuhelp.DefaulGroup = update.Message.CommandArguments()
+						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Готово."))
+					} else {
+						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Нужно больше золота."))
+					}
+
 				}
 			}
 		}
