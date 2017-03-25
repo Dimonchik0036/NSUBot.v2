@@ -163,7 +163,7 @@ func GetNewPosts() (result [][2]string) {
 
 func GetGroupPost(groupName string) ([CountPost][2]string, error) {
 	p, err := GetLatestPosts(groupName)
-	if err != nil || p[0][0] == "" {
+	if err != nil || p[1][0] == "" {
 		return p, errors.New("Группа не валидна.")
 	}
 

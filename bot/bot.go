@@ -143,7 +143,7 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID,
 				"Привет!\nЯ - бот, который способен показать температуру около НГУ и расписание занятий.\n"+
 					"Рекомендую воспользоваться командой /help, чтобы узнать все возможности. Если возникнут вопросы, то можно воспользоваться /faq.")
-		case "help":
+		case "help", "h":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, getHelp(update.Message.CommandArguments()))
 		case "faq":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID,
@@ -165,9 +165,9 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Мой телеграм: @Dimonchik0036\nМой github: github.com/dimonchik0036")
 		case "Погода", "weather", "погода", "Weather", "weather_nsu":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, weatherText)
-		case "today":
+		case "today", "t", "td":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 0, update.Message.From.ID))
-		case "tomorrow":
+		case "tomorrow", "tm", "tom":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 1, update.Message.From.ID))
 		case "setgroup":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(scheduleMap, userGroup, update.Message.From.ID, update.Message.CommandArguments()))
@@ -187,17 +187,18 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		case "post":
 			a, err := nsuhelp.GetGroupPost(update.Message.CommandArguments())
 			if err == nil {
-				if a[0][0] != "" {
+				if a[1][0] != "" {
 					for _, v := range a {
-						msg = tgbotapi.NewMessage(update.Message.Chat.ID, v[0]+"\n\n"+v[1])
+						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, v[0]+"\n\n"+v[1]))
 					}
+					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Всегда пожалуйста.")
 				} else {
 					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна.")
 				}
 			} else {
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна.")
 			}
-		case "feedback":
+		case "feedback", "f":
 			if update.Message.CommandArguments() != "" {
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за обратную связь.")
 				bot.Send(tgbotapi.NewMessage(myId, update.Message.CommandArguments()+"\n\nОтзыв от:\n"+loader.WriteUsers(users[update.Message.From.ID])))
@@ -451,11 +452,22 @@ func main() {
 
 	go func() {
 		for {
-			time.Sleep(7 * time.Minute)
+			time.Sleep(30 * time.Second)
 
-			loader.UpdateUserInfo(users)
-			customers.UpdateUserLabels(userGroup)
-			loader.UpdateUserSubscriptions()
+			err := loader.UpdateUserInfo(users)
+			if err != nil {
+				logAll.Print(err)
+			}
+
+			err = customers.UpdateUserLabels(userGroup)
+			if err != nil {
+				logAll.Print(err)
+			}
+
+			err = loader.UpdateUserSubscriptions()
+			if err != nil {
+				logAll.Print(err)
+			}
 		}
 	}()
 

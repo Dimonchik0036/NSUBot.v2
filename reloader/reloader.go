@@ -9,7 +9,7 @@ import (
 )
 
 const myId = 227605930
-const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
+const botToken = "325933326:AAFWjDWFPKFjAMg9MDr_Av-g643F_UhJmNY"
 
 func main() {
 	file, err := os.OpenFile("logStart.txt", os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)

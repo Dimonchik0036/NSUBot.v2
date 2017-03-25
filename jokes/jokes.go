@@ -1,7 +1,6 @@
 package jokes
 
 import (
-	"TelegramBot/nsuhelp"
 	"golang.org/x/net/html"
 	"io/ioutil"
 	"net/http"
@@ -61,15 +60,16 @@ func GetJokes() (string, error) {
 func ChangeJokeSubscriptions(id int) string {
 	v, ok := JokeBase[id]
 	if !ok {
-		JokeBase[id] = nsuhelp.Yes
+		JokeBase[id] = 1
 		return "Вы были подписаны на рассылку."
 	} else {
 		if v != 0 {
-			JokeBase[id] = nsuhelp.No
+			JokeBase[id] = 0
 			return "Вы были отписаны от рассылки."
 		} else {
-			JokeBase[id] = nsuhelp.Yes
+			JokeBase[id] = 1
 			return "Вы были подписаны на рассылку."
 		}
 	}
+
 }

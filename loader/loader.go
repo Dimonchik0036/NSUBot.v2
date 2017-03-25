@@ -88,7 +88,7 @@ func UpdateUserSubscriptions() error {
 		userFile.Write(b)
 	}
 
-	for i, v := range nsuhelp.UsersNsuHelp {
+	for i, v := range jokes.JokeBase {
 		s.Id = i
 		s.Selection = v
 		s.Group = "jokes"
