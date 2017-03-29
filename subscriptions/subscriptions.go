@@ -1,4 +1,4 @@
-package nsuhelp
+package subscriptions
 
 import (
 	"TelegramBot/mymodule"
@@ -19,6 +19,9 @@ var LatestPosts [CountPost][2]string
 var UsersNsuHelp = make(map[int]int)
 
 var ParserGroup = "nsuhelp"
+
+const NsuHelp = "nsuhelp"
+const NsuFit = "nsufit"
 
 func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 	var er [CountPost][2]string
@@ -170,18 +173,18 @@ func GetGroupPost(groupName string) ([CountPost][2]string, error) {
 	return p, err
 }
 
-func ChangeSubscriptions(id int) string {
+func ChangeSubscriptions(id int, name string) string {
 	v, ok := UsersNsuHelp[id]
 	if !ok {
 		UsersNsuHelp[id] = Yes
-		return "Вы были подписаны на рассылку."
+		return "Вы были подписаны на рассылку " + name + "."
 	} else {
 		if v != 0 {
 			UsersNsuHelp[id] = No
-			return "Вы были отписаны от рассылки."
+			return "Вы были отписаны от рассылки " + name + "."
 		} else {
 			UsersNsuHelp[id] = Yes
-			return "Вы были подписаны на рассылку."
+			return "Вы были подписаны на рассылку " + name + "."
 		}
 	}
 }

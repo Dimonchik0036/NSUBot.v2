@@ -3,8 +3,7 @@ package loader
 import (
 	"TelegramBot/customers"
 	"TelegramBot/jokes"
-	"TelegramBot/nsuhelp"
-	"TelegramBot/schedule"
+	"TelegramBot/subscriptions"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -35,7 +34,7 @@ var UserFileName string = "users_info.txt"
 var TimeFormat string = "02.01.06 15:04:10"
 
 func LoadUsersSubscriptions() error {
-	userFile, err := os.OpenFile(nsuhelp.FileUsersSubscriptions, os.O_RDWR, os.ModePerm)
+	userFile, err := os.OpenFile(subscriptions.FileUsersSubscriptions, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return nil
 	}
@@ -53,7 +52,7 @@ func LoadUsersSubscriptions() error {
 
 		switch s.Group {
 		case "nsuhelp":
-			nsuhelp.UsersNsuHelp[s.Id] = s.Selection
+			subscriptions.UsersNsuHelp[s.Id] = s.Selection
 		case "jokes":
 			jokes.JokeBase[s.Id] = s.Selection
 		}
@@ -68,13 +67,13 @@ func LoadUsersSubscriptions() error {
 }
 
 func UpdateUserSubscriptions() error {
-	userFile, err := os.OpenFile(nsuhelp.FileUsersSubscriptions, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	userFile, err := os.OpenFile(subscriptions.FileUsersSubscriptions, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
 	var s Subscriptions
-	for i, v := range nsuhelp.UsersNsuHelp {
+	for i, v := range subscriptions.UsersNsuHelp {
 		s.Id = i
 		s.Selection = v
 		s.Group = "nsuhelp"
@@ -155,6 +154,9 @@ func LoadUserGroup() error {
 
 		decLabels := json.NewDecoder(bytes.NewReader([]byte(u.Labels)))
 
+		var g customers.UserGroup
+		g.Group = make(map[string]string)
+
 		for {
 			var l customers.UserLabels
 
@@ -164,8 +166,14 @@ func LoadUserGroup() error {
 				return err
 			}
 
-			customers.AddGroupNumber(schedule.TableSchedule, u.Id, l.Group+" "+l.Label)
+			if l.Label == customers.MyGroupLabel {
+				g.MyGroup = l.Group
+			} else {
+				g.Group[l.Label] = l.Group
+			}
 		}
+
+		customers.AllLabels[u.Id] = g
 	}
 
 	err = userfile.Close()

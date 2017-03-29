@@ -75,32 +75,34 @@ func UpdateUserLabels() error {
 	return err
 }
 
-func PrintUserLabels(group UserGroup) (userLabels string) {
-	if group.MyGroup != "" {
-		userLabels = "Стандартная группа " + group.MyGroup + ".\n"
+func PrintUserLabels(id int) (userLabels string) {
+	g, ok := AllLabels[id]
+	if !ok {
+		return "Метки отсутствуют."
 	}
 
-	for l, g := range group.Group {
-		userLabels += "Для группы " + g + " назначена метка \"" + l + "\".\n"
+	if g.MyGroup != "" {
+		userLabels = "Моя группа " + g.MyGroup + ".\n"
 	}
 
-	if userLabels == "" {
-		userLabels = "Метки отсутствуют."
+	for l, g := range g.Group {
+		userLabels += "У группы " + g + "  метка \"" + l + "\".\n"
 	}
 
 	return
 }
 
-func DeleteUserLabels(userGroup UserGroup) string {
-	if len(userGroup.Group) == 0 {
-		return "Список меток пуст."
+func DeleteUserLabels(id int) string {
+	g, ok := AllLabels[id]
+	if !ok || g.Group == nil || len(g.Group) == 0 {
+		return "Список меток пуст"
 	}
 
-	for i := range userGroup.Group {
-		delete(userGroup.Group, i)
+	for i := range g.Group {
+		delete(g.Group, i)
 	}
 
-	return "Были очищены все метки, кроме стандартной."
+	return "Были очищены все метки"
 }
 
 func GroupDecomposition(commang string) (group string, labelGroup string) {
