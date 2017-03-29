@@ -1,13 +1,20 @@
 package main
 
 import (
+	"TelegramBot/loader"
 	"TelegramBot/menu"
+	"TelegramBot/schedule"
+	"TelegramBot/weather"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
+	"time"
 )
 
 const myId = 227605930
 const botToken = "325933326:AAFWjDWFPKFjAMg9MDr_Av-g643F_UhJmNY"
+
+var gkDate string
+var lkDate string
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI(botToken)
@@ -28,14 +35,27 @@ func main() {
 		return
 	}
 
-	for update := range updates {
-		msg, err := menu.MessageProcessing(update)
-		if err != nil {
-			log.Print(err)
-			continue
-		}
+	loader.LoadUserGroup()
 
-		log.Print(msg)
-		bot.Send(msg)
+	schedule.GetAllSchedule("GK", &gkDate, &lkDate)
+	schedule.GetAllSchedule("LK", &gkDate, &lkDate)
+
+	go func() {
+		for {
+			weather.SearchWeather()
+			time.Sleep(time.Minute)
+		}
+	}()
+
+	for update := range updates {
+		go func() {
+			msg, err := menu.MessageProcessing(update)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			bot.Send(msg)
+		}()
 	}
 }

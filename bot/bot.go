@@ -4,8 +4,9 @@ import (
 	"TelegramBot/customers"
 	"TelegramBot/jokes"
 	"TelegramBot/loader"
-	"TelegramBot/nsuhelp"
+	"TelegramBot/menu"
 	"TelegramBot/schedule"
+	"TelegramBot/subscriptions"
 	"TelegramBot/weather"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -20,7 +21,7 @@ var users = make(map[int]string)
 
 // Хранят количество пользователей
 var chatsCount int
-var usersCount int = 31
+var usersCount int
 
 // Хранят дату последнего обновления
 var gkDate string
@@ -169,9 +170,9 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		case "setgroup":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(schedule.TableSchedule, update.Message.From.ID, update.Message.CommandArguments()))
 		case "labels":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(customers.AllLabels[update.Message.From.ID]))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(update.Message.From.ID))
 		case "clearlabels":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(customers.AllLabels[update.Message.From.ID]))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(update.Message.From.ID))
 		case "joke":
 			joke, err := jokes.GetJokes()
 			if err == nil {
@@ -180,9 +181,9 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		case "subjoke":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, jokes.ChangeJokeSubscriptions(update.Message.From.ID))
 		case "nsuhelp":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, nsuhelp.ChangeSubscriptions(update.Message.From.ID))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(update.Message.From.ID, "Помогу в НГУ"))
 		case "post":
-			a, err := nsuhelp.GetGroupPost(update.Message.CommandArguments())
+			a, err := subscriptions.GetGroupPost(update.Message.CommandArguments())
 			if err == nil {
 				if a[1][0] != "" {
 					for _, v := range a {
@@ -261,7 +262,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 
 	switch commands {
 	case "defaultgroup":
-		message = nsuhelp.ChangeDefaultGroup(arg)
+		message = subscriptions.ChangeDefaultGroup(arg)
 	case "help":
 		message += "/users <_ | all> - Выводит статистику по пользователям.\n" +
 			"/groups <_ | all> - Выводит статистику по каналам.\n" +
@@ -468,10 +469,10 @@ func main() {
 
 	go func() {
 		for {
-			a := nsuhelp.GetNewPosts()
+			a := subscriptions.GetNewPosts()
 			if len(a) != 0 {
 				if a[0][0] != "" {
-					for i, b := range nsuhelp.UsersNsuHelp {
+					for i, b := range subscriptions.UsersNsuHelp {
 						if b != 0 {
 							for _, v := range a {
 								if len(v[1]) > 4500 {
@@ -490,6 +491,16 @@ func main() {
 	}()
 
 	for update := range updates {
+		go func() {
+			msg, err := menu.MessageProcessing(update)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			bot.Send(msg)
+		}()
+
 		if update.Message == nil {
 			continue
 		}
