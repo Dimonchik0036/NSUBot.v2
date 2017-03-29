@@ -17,8 +17,6 @@ import (
 // Хранят основную информацию
 var chats = make(map[int64]string)
 var users = make(map[int]string)
-var userGroup = make(map[int]customers.UserGroup)
-var scheduleMap = make(map[string][7]string)
 
 // Хранят количество пользователей
 var chatsCount int
@@ -29,7 +27,6 @@ var gkDate string
 var lkDate string
 
 // Рабочие переменные
-var weatherText string = "Погода временно недоступна, попробуйте чуть позднее."
 var timeToStart string
 
 // Логгеры
@@ -37,7 +34,7 @@ var logAll *log.Logger
 
 // Личные данные
 const myId = 227605930
-const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
+const botToken = "325933326:AAFWjDWFPKFjAMg9MDr_Av-g643F_UhJmNY"
 
 func getHelp(arg string) (text string) {
 	switch arg {
@@ -163,18 +160,18 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 					"Если у Вас остались ещё какие-то вопросы, то их можно задать мне @dimonchik0036.")
 		case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Мой телеграм: @Dimonchik0036\nМой github: github.com/dimonchik0036")
-		case "Погода", "weather", "погода", "Weather", "weather_nsu":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, weatherText)
+		case "Погода", "weather", "погода", "Weather", "weather_nsu", "Температура":
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather)
 		case "today", "t", "td":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 0, update.Message.From.ID))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(update.Message.CommandArguments(), 0, update.Message.From.ID))
 		case "tomorrow", "tm", "tom":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(scheduleMap, userGroup, update.Message.CommandArguments(), 1, update.Message.From.ID))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(update.Message.CommandArguments(), 1, update.Message.From.ID))
 		case "setgroup":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(scheduleMap, userGroup, update.Message.From.ID, update.Message.CommandArguments()))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(schedule.TableSchedule, update.Message.From.ID, update.Message.CommandArguments()))
 		case "labels":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(userGroup[update.Message.From.ID].Group))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(customers.AllLabels[update.Message.From.ID]))
 		case "clearlabels":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeletUserLabels(userGroup[update.Message.From.ID]))
+			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(customers.AllLabels[update.Message.From.ID]))
 		case "joke":
 			joke, err := jokes.GetJokes()
 			if err == nil {
@@ -304,9 +301,9 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 
 		return
 	case "setmessage":
-		weatherText = arg
-		logAll.Print("Обновлена строка температуры на: " + weatherText)
-		message += "Готово!\n" + "'" + weatherText + "'"
+		weather.CurrentWeather = arg
+		logAll.Print("Обновлена строка температуры на: " + weather.CurrentWeather)
+		message += "Готово!\n" + "'" + weather.CurrentWeather + "'"
 	case "sendmelog":
 		if arg == "data" || arg == "users" || arg == "labels" {
 			_, err := bot.Send(tgbotapi.NewMessage(myId, "Отправляю..."))
@@ -370,7 +367,7 @@ func main() {
 
 	bot.Debug = false
 
-	info, err := schedule.GetAllSchedule(scheduleMap, "GK", &gkDate, &lkDate)
+	info, err := schedule.GetAllSchedule("GK", &gkDate, &lkDate)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с GK"))
 		logAll.Fatal("GK")
@@ -378,7 +375,7 @@ func main() {
 		logAll.Print(info)
 	}
 
-	info, err = schedule.GetAllSchedule(scheduleMap, "LK", &gkDate, &lkDate)
+	info, err = schedule.GetAllSchedule("LK", &gkDate, &lkDate)
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с LK"))
 		logAll.Fatal("LK")
@@ -388,7 +385,7 @@ func main() {
 
 	go func() {
 		for {
-			answer, err := schedule.ParseSchedule(scheduleMap, "GK", &gkDate, &lkDate)
+			answer, err := schedule.ParseSchedule("GK", &gkDate, &lkDate)
 			if err != nil {
 				logAll.Print(err)
 			} else {
@@ -397,7 +394,7 @@ func main() {
 				}
 			}
 
-			answer, err = schedule.ParseSchedule(scheduleMap, "LK", &gkDate, &lkDate)
+			answer, err = schedule.ParseSchedule("LK", &gkDate, &lkDate)
 			if err != nil {
 				logAll.Print(err)
 			} else {
@@ -412,11 +409,9 @@ func main() {
 
 	go func() {
 		for {
-			answer, err := weather.SearchWeather()
+			err := weather.SearchWeather()
 			if err != nil {
 				logAll.Print(err)
-			} else {
-				weatherText = answer
 			}
 
 			time.Sleep(time.Minute)
@@ -444,8 +439,8 @@ func main() {
 	}
 
 	loader.LoadChats(chats)
-	loader.LoadUserGroup(scheduleMap, userGroup)
-	loader.LoadSchedule(scheduleMap)
+	loader.LoadUserGroup()
+	loader.LoadSchedule()
 	loader.LoadUsersSubscriptions()
 
 	go SendJokesAll(bot)
@@ -459,7 +454,7 @@ func main() {
 				logAll.Print(err)
 			}
 
-			err = customers.UpdateUserLabels(userGroup)
+			err = customers.UpdateUserLabels()
 			if err != nil {
 				logAll.Print(err)
 			}
@@ -497,6 +492,14 @@ func main() {
 	for update := range updates {
 		if update.Message == nil {
 			continue
+		}
+
+		if update.Message.From.ID == myId {
+			if update.Message.Command() == "reset" {
+				bot.Send(tgbotapi.NewMessage(myId, "Выключаюсь."))
+				logAll.Print("Выключаюсь по приказу.")
+				return
+			}
 		}
 
 		go processingMessages(bot, update)

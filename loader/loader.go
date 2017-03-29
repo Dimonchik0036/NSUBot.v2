@@ -4,6 +4,7 @@ import (
 	"TelegramBot/customers"
 	"TelegramBot/jokes"
 	"TelegramBot/nsuhelp"
+	"TelegramBot/schedule"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -135,7 +136,7 @@ func WriteUsers(mess string) string {
 }
 
 // LoadUserGroup Загружает данные о запомненных группах.
-func LoadUserGroup(scheduleMap map[string][7]string, userGroup map[int]customers.UserGroup) error {
+func LoadUserGroup() error {
 	userfile, err := os.OpenFile(customers.LabelsFile, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return nil
@@ -163,7 +164,7 @@ func LoadUserGroup(scheduleMap map[string][7]string, userGroup map[int]customers
 				return err
 			}
 
-			customers.AddGroupNumber(scheduleMap, userGroup, u.Id, l.Group+" "+l.Label)
+			customers.AddGroupNumber(schedule.TableSchedule, u.Id, l.Group+" "+l.Label)
 		}
 	}
 
@@ -306,6 +307,6 @@ func LoadChats(chats map[int64]string) error {
 }
 
 // LoadSchedule Загружает данные о чатах.
-func LoadSchedule(scheduleMap map[string][7]string) error {
+func LoadSchedule() error {
 	return nil
 }

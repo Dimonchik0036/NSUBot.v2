@@ -18,7 +18,7 @@ const No = 0
 var LatestPosts [CountPost][2]string
 var UsersNsuHelp = make(map[int]int)
 
-var DefaulGroup = "nsuhelp"
+var ParserGroup = "nsuhelp"
 
 func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 	var er [CountPost][2]string
@@ -130,7 +130,7 @@ func GetLatestPosts(groupName string) ([CountPost][2]string, error) {
 }
 
 func GetNewPosts() (result [][2]string) {
-	p, err := GetLatestPosts(DefaulGroup)
+	p, err := GetLatestPosts(ParserGroup)
 	if err != nil {
 		return nil
 	}
@@ -189,7 +189,7 @@ func ChangeSubscriptions(id int) string {
 func ChangeDefaultGroup(group string) string {
 	_, err := GetGroupPost(group)
 	if err == nil {
-		DefaulGroup = group
+		ParserGroup = group
 		return "Готово."
 	} else {
 		return "Группа не валидна."

@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var TableSchedule = make(map[string][7]string)
+
 // searchFacultyName Вытаскивает из текста название факультета.
 func searchFacultyName(text string) (string, error) {
 	titleRegexp, err := regexp.Compile("<H1>.*</H1>")
@@ -53,7 +55,7 @@ func searchFacultyName(text string) (string, error) {
 }
 
 // getGroupSchedule Загружает расписание группы.
-func getGroupSchedule(scheduleMap map[string][7]string, name string, group string) error {
+func getGroupSchedule(name string, group string) error {
 	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/" + name)
 	if err != nil {
 		return err
@@ -207,13 +209,13 @@ func getGroupSchedule(scheduleMap map[string][7]string, name string, group strin
 			"7 П. 20:00: " + string(tableDay[6][number]) + "\n"
 	}
 
-	scheduleMap[groupTitle] = message
+	TableSchedule[groupTitle] = message
 
 	return nil
 }
 
 // GetAllSchedule Заполняет расписание.
-func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *string, lkDate *string) (info string, err error) {
+func GetAllSchedule(group string, gkDate *string, lkDate *string) (info string, err error) {
 	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/")
 	if err != nil {
 		return "", errors.New("Расписание временно недоступно.")
@@ -257,10 +259,10 @@ func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *stri
 	}
 
 	for _, v := range hrefK {
-		err = getGroupSchedule(scheduleMap, v[1:], group)
+		err = getGroupSchedule(v[1:], group)
 		if err != nil {
 			info += group + " "
-			scheduleMap[v[1:]] = mess
+			TableSchedule[v[1:]] = mess
 		}
 	}
 
@@ -276,7 +278,7 @@ func GetAllSchedule(scheduleMap map[string][7]string, group string, gkDate *stri
 }
 
 // ParseSchedule Проверяет расписание на изменение.
-func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *string, lkDate *string) (info string, err error) {
+func ParseSchedule(group string, gkDate *string, lkDate *string) (info string, err error) {
 	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/")
 	if err != nil {
 		return "", err
@@ -312,14 +314,14 @@ func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *strin
 
 	if date != "" {
 		if (group == "GK") && (*gkDate != date) {
-			mess, err := GetAllSchedule(scheduleMap, "GK", gkDate, lkDate)
+			mess, err := GetAllSchedule("GK", gkDate, lkDate)
 			if err == nil {
 				info = "GK " + date + " " + mess
 				*gkDate = date
 			}
 		} else {
 			if (group == "LK") && (*lkDate != date) {
-				mess, err := GetAllSchedule(scheduleMap, "LK", gkDate, lkDate)
+				mess, err := GetAllSchedule("LK", gkDate, lkDate)
 				if err == nil {
 					info = "LK " + date + " " + mess
 					*lkDate = date
@@ -332,24 +334,24 @@ func ParseSchedule(scheduleMap map[string][7]string, group string, gkDate *strin
 }
 
 // PrintSchedule Возвращает расписание.
-func PrintSchedule(scheduleMap map[string][7]string, userGroup map[int]customers.UserGroup, group string, offset int, id int) string {
+func PrintSchedule(group string, offset int, id int) string {
 	if len(group) > 16 {
 		return "Введите корректный номер группы."
 	}
 
 	if group == "" {
-		group = "0"
+		group = customers.AllLabels[id].MyGroup
+	} else {
+		defaultGroup, ok := customers.AllLabels[id].Group[group]
+		if ok {
+			group = defaultGroup
+		}
 	}
 
-	defaultGroup, ok := userGroup[id].Group[group]
-	if ok {
-		group = defaultGroup
-	}
-
-	v, ok := scheduleMap[group]
+	v, ok := TableSchedule[group]
 	if !ok {
 		group += ".1"
-		v, ok = scheduleMap[group]
+		v, ok = TableSchedule[group]
 		if !ok {
 			return "Неверно задан номер группы. Воспользуйтесь /help или /faq для помощи."
 		}

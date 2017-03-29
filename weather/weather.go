@@ -3,48 +3,49 @@ package weather
 import (
 	"bufio"
 	"errors"
+	"io/ioutil"
 	"net/http"
+	"regexp"
 	"time"
 )
 
+var CurrentWeather string = "Погода временно недоступна, попробуйте чуть позднее."
+
 // SearchWeather Возвращает строку с температурой, в противном случае ошибку.
-func SearchWeather() (string, error) {
+func SearchWeather() error {
 	res, err := http.Get("http://weather.nsu.ru/loadata.php")
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if res.Status != "200 OK" {
-		return "", errors.New("Ошибка статуса страницы: " + res.Status)
+		return errors.New("Ошибка статуса страницы: " + res.Status)
 	}
 
-	reader := bufio.NewReader(res.Body)
-
-	text, err := reader.ReadBytes(' ')
+	textBody, err := ioutil.ReadAll(bufio.NewReader(res.Body))
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	for string(text) != "'Температура " {
-		text, err = reader.ReadBytes(' ')
-		if err != nil {
-			return "", err
-		}
-	}
-
-	t, err := reader.ReadBytes('\'')
+	reg, err := regexp.Compile("'Температура около .*?'")
 	if err != nil {
-		return "", errors.New("Ошибка при чтении погоды.")
+		return err
 	}
 
 	err = res.Body.Close()
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	mess := string(text[1:])
-	mess += string(t[:len(t)-1])
+	bytes := reg.Find(textBody)
+	if len(bytes) == 0 {
+		return errors.New("Не удалось вытащить температуру.")
+	}
+
+	mess := string(bytes[1 : len(bytes)-1])
 	mess += "\nВремя последнего обновления: " + time.Now().Format("02.01.06 15:04")
 
-	return mess, nil
+	CurrentWeather = mess
+
+	return nil
 }
