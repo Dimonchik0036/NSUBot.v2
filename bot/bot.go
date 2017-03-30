@@ -34,69 +34,41 @@ var timeToStart string
 var logAll *log.Logger
 
 // Личные данные
-const myId = 227605930
 const botToken = "325933326:AAFWjDWFPKFjAMg9MDr_Av-g643F_UhJmNY"
 
-func getHelp(arg string) (text string) {
-	switch arg {
-	case "setgroup":
-		text = "Команда позволяет назначить группу для быстрого доступа.\n" +
-			"Например, если ввести \"/setgroup 16211.1\", то при использовании /today или /tomorrow без аргументов, будет показываться расписание группы 16211.1\n\n" +
-			"Если ввести \"/setgroup <номер группы>\", то эта группа будет вызываться по умолчанию, " +
-			"тоесть можно будет писать /today или /tomorrow без каких либо номеров групп.\n\n" +
-			"Команда \"/setgroup <номер группы>  <метка>\" позволяет привязать группу к какой-то метке, " +
-			"в качестве метки может выступать любая последовательность символов, не содержащая пробелов.\n" +
-			"Чтобы воспрользоваться метками, достаточно ввести \"/today <метка>\" или \"/tomorrow <метка>\"."
-	case "today", "tomorrow":
-		text = "/today <номер группы | метка> - Показывает расписание занятий на сегодня, пример: \"/today 16211.1\".\n" +
-			"/tomorrow <номер группы | метка> - Показывает расписание занятий на завтра, пример: \"/tomorrow 16211.1\".\n\n" +
-			"Для вызова этих команд необходимо ввести номер группы. Если воспользоваться командой /setgroup, " +
-			"то появится возможность использовать метки вместо номера группы, либо вовсе не писать ничего, " +
-			"если добавить свою группу в стандартные (подробнее можно прочитать в \"/help setgroup\")."
-	case "weather":
-		text = "/weather - Показать температуру воздуха около НГУ."
-	case "labels":
-		text = "/labels - Показывает записанные метки."
-	case "clearlabels":
-		text = "/clearlabels - Очищает все метки, кроме стандартной."
-	case "feedback":
-		text = "/feedback <текст> - Оставить отзыв, который будет услышан."
-	case "nsuhelp":
-		text = "/nsuhelp - Управление подпиской на рассылку новостей из группы \"Помогу в НГУ\".\n\n" +
-			"Позволяет подписаться на рассылку новых новостей из группы \"Помогу в НГУ\"."
-	case "secret":
-		text = "ACHTUNG! Использование этих команд запрещено на территории РФ. Автор ответственности не несёт, используйте на свой страх и риск. \n\n" +
-			"/joke - Показывает бородатый анекдот.\n" +
-			"/subjoke - Подписывает на рассылку бородатых анекдотов. Именно их можно получить, используя /joke\n" +
-			"/post <ID группы в VK> - Показывает закреплённый и 4 обычных поста из этой группы VK.\n\n" +
-			"/creator - Используешь -> ? -> PROFIT!"
-	default:
-		text = "Список команд:\n" +
-			"/help - Показать список команд\n\n" +
-			"/weather - Показать температуру воздуха около НГУ\n\n" +
-			"/today <номер группы | метка> - Показывает расписание занятий конкретной группы.\n\n" +
-			"/tomorrow <номер группы | метка> - Показывает расписание занятий конкретной группы на завтра.\n\n" +
-			"/setgroup <номер группы + метка> - Устанавливает номер группы для быстрого доступа.\n\n" +
-			"/labels - Показывает записанные метки.\n\n" +
-			"/clearlabels - Очищает все метки, кроме стандартной.\n\n" +
-			"/nsuhelp - Управление подпиской на рассылку новостей из группы \"Помогу в НГУ\".\n\n" +
-			"/feedback <текст> - Оставить отзыв, который будет услышан.\n\n" +
-			"/faq - Типичные вопросы и ответы на них.\n\n" +
-			"Для подробного описания команд, введите \"/help <команда>\". Например, \"/help setgroup\".\n\n" +
-			"P.S. Значёк <|> в расписании показывает, что это двойная пара. Отображение только текущей недели будет добавлено чуть позже."
-	}
+func messageLog(update tgbotapi.Update) {
+	if update.Message != nil {
+		if update.Message.Chat.IsGroup() || update.Message.Chat.IsChannel() || update.Message.Chat.IsSuperGroup() {
+			logAll.Printf("[%d] %s",
+				update.Message.Chat.ID, "'"+
+					update.Message.Chat.Title+"' "+
+					update.Message.From.FirstName+" "+
+					update.Message.From.LastName+" (@"+
+					update.Message.From.UserName+")")
 
-	return text
+		}
+
+		logAll.Printf("[%d] %s: %s",
+			update.Message.From.ID,
+			update.Message.From.FirstName+" "+
+				update.Message.From.LastName+" (@"+
+				update.Message.From.UserName+")",
+			update.Message.Text)
+	}
 }
 
-func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+	if update.Message == nil {
+		return nil
+	}
+
 	if update.Message.Chat.Type != "private" {
 		_, ok := chats[update.Message.Chat.ID]
 		if !ok {
 			n := newChat(update.Message.Chat)
 			chats[update.Message.Chat.ID] = n
 
-			_, err := bot.Send(tgbotapi.NewMessage(myId, "Новая чат-сессия!\n"+n))
+			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Новая чат-сессия!\n"+n))
 			if err != nil {
 				logAll.Print("newChat:", err)
 			}
@@ -105,89 +77,57 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 
 	m, ok, err := loader.NewUserInfo(users, &update)
 	if err != nil {
-		logAll.Print(err)
+		return err
 	}
 
 	if ok {
-		bot.Send(tgbotapi.NewMessage(myId, "Новый пользователь!\n"+m))
+		bot.Send(tgbotapi.NewMessage(loader.MyId, "Новый пользователь!\n"+m))
 		usersCount++
 	} else {
 		loader.ReloadUserDate(users, update.Message.From.ID)
 	}
 
-	if update.Message.Chat.IsGroup() || update.Message.Chat.IsChannel() || update.Message.Chat.IsSuperGroup() {
-		logAll.Printf("[%d] %s",
-			update.Message.Chat.ID, "'"+
-				update.Message.Chat.Title+"' "+
-				update.Message.From.FirstName+" "+
-				update.Message.From.LastName+" (@"+
-				update.Message.From.UserName+")")
+	return nil
+}
 
+func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
+	processingUser(bot, update)
+	messageLog(update)
+
+	m, err := menu.MessageProcessing(update)
+	if err != nil {
+		log.Print(err)
+		return
 	}
 
-	logAll.Printf("[%d] %s: %s",
-		update.Message.From.ID,
-		update.Message.From.FirstName+" "+
-			update.Message.From.LastName+" (@"+
-			update.Message.From.UserName+")",
-		update.Message.Text)
+	bot.Send(m)
+
+	sendMembers(update, bot)
+
+	if update.Message == nil {
+		return
+	}
 
 	var msg tgbotapi.MessageConfig
 	var nilMsg bool
 
 	if update.Message.IsCommand() {
 		switch update.Message.Command() {
-		case "start":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID,
-				"Привет!\nЯ - бот, который способен показать температуру около НГУ и расписание занятий.\n"+
-					"Рекомендую воспользоваться командой /help, чтобы узнать все возможности. Если возникнут вопросы, то можно воспользоваться /faq.")
-		case "help", "h":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, getHelp(update.Message.CommandArguments()))
-		case "faq":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID,
-				"Q: Можно ли пользоваться командой /today и /tomorrow и не вводить номер группы каждый раз?\n"+
-					"A: Да, можно. Для этого необходимо воспользоваться командой /setgroup.\n\n"+
 
-					"Q: Как установить номер группы для быстрого доступа?\n"+
-					"A: Необходимо ввести /setgroup <номер группы>, где <номер группы> - это желаемый номер группы(треугольные скобки писать не нужно).\n"+
-					"Пример: /setgroup 16211.1\n\n"+
-
-					"Q: Можно ли посмотреть расписание, если не работает официальный сайт с расписанием?\n"+
-					"A: Да, можно.\n\n"+
-
-					"Q: Как часто обновляется расписание?\n"+
-					"A: Сразу же после изменений в официальном расписании.\n\n"+
-
-					"Если у Вас остались ещё какие-то вопросы, то их можно задать мне @dimonchik0036.")
-		case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Мой телеграм: @Dimonchik0036\nМой github: github.com/dimonchik0036")
-		case "Погода", "weather", "погода", "Weather", "weather_nsu", "Температура":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather)
-		case "today", "t", "td":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(update.Message.CommandArguments(), 0, update.Message.From.ID))
-		case "tomorrow", "tm", "tom":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, schedule.PrintSchedule(update.Message.CommandArguments(), 1, update.Message.From.ID))
-		case "setgroup":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.AddGroupNumber(schedule.TableSchedule, update.Message.From.ID, update.Message.CommandArguments()))
-		case "labels":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(update.Message.From.ID))
-		case "clearlabels":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(update.Message.From.ID))
-		case "joke":
-			joke, err := jokes.GetJokes()
-			if err == nil {
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, joke)
-			}
-		case "subjoke":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, jokes.ChangeJokeSubscriptions(update.Message.From.ID))
-		case "nsuhelp":
-			msg = tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(update.Message.From.ID, "Помогу в НГУ"))
 		case "post":
 			a, err := subscriptions.GetGroupPost(update.Message.CommandArguments())
 			if err == nil {
-				if a[1][0] != "" {
-					for _, v := range a {
-						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, v[0]+"\n\n"+v[1]))
+				if a[1][0] != "" || a[0][0] != "" {
+					if a[0][0] != "" {
+						a[0][0] += "\nЗакреплённая запись"
+					}
+
+					for i := len(a) - 1; i >= 0; i-- {
+						if len(a[i][1]) > 4500 {
+							a[i][1] = a[i][1][:4500] + "...\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
+						}
+
+						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, a[i][0]+"\n\n"+a[i][1]))
 					}
 					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Всегда пожалуйста.")
 				} else {
@@ -199,13 +139,12 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		case "feedback", "f":
 			if update.Message.CommandArguments() != "" {
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за обратную связь.")
-				bot.Send(tgbotapi.NewMessage(myId, update.Message.CommandArguments()+"\n\nОтзыв от:\n"+loader.WriteUsers(users[update.Message.From.ID])))
+				bot.Send(tgbotapi.NewMessage(loader.MyId, update.Message.CommandArguments()+"\n\nОтзыв от:\n"+loader.WriteUsers(users[update.Message.From.ID])))
 			} else {
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Вы забыли набрать сообщение.")
 			}
 		default:
 			nilMsg = true
-
 		}
 
 		if !nilMsg {
@@ -213,16 +152,6 @@ func processingMessages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			if err != nil {
 				logAll.Print("Невозможно отправить: ", err)
 			}
-		}
-
-		if update.Message.From.ID == myId {
-			if update.Message.Command() == "reset" {
-				bot.Send(tgbotapi.NewMessage(myId, "Выключаюсь."))
-				logAll.Print("Выключаюсь по приказу.")
-				return
-			}
-
-			sendMembers(update.Message.Command(), update.Message.CommandArguments(), bot)
 		}
 	}
 }
@@ -257,12 +186,16 @@ func newChat(chat *tgbotapi.Chat) string {
 }
 
 // sendMembers Отправляет статистику по пользователям
-func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
+func sendMembers(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
+	if update.Message == nil || update.Message.From.ID != loader.MyId {
+		return
+	}
+
 	var message string
 
-	switch commands {
+	switch update.Message.Command() {
 	case "defaultgroup":
-		message = subscriptions.ChangeDefaultGroup(arg)
+		message = subscriptions.ChangeDefaultGroup(update.Message.CommandArguments())
 	case "help":
 		message += "/users <_ | all> - Выводит статистику по пользователям.\n" +
 			"/groups <_ | all> - Выводит статистику по каналам.\n" +
@@ -272,7 +205,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 			"/reset - Завершает текущую сессию бота. \n" +
 			"/defaultgroup <id группы> - Изменяет отслеживаемую группу."
 	case "users":
-		if arg == "all" {
+		if update.Message.CommandArguments() == "all" {
 			for _, v := range users {
 				message += loader.WriteUsers(v) + "\n\n"
 			}
@@ -280,7 +213,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 
 		message += "Количество пользователей: " + strconv.Itoa(usersCount)
 	case "groups":
-		if arg == "all" {
+		if update.Message.CommandArguments() == "all" {
 			for _, v := range chats {
 				message += v + "\n\n"
 			}
@@ -289,11 +222,11 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 
 		message += "Количество чатов: " + strconv.Itoa(chatsCount)
 	case "sendall":
-		if arg != "" {
-			logAll.Print("Рассылаю всем: '" + arg + "'")
+		if update.Message.CommandArguments() != "" {
+			logAll.Print("Рассылаю всем: '" + update.Message.CommandArguments() + "'")
 
 			for i := range users {
-				_, err := bot.Send(tgbotapi.NewMessage(int64(i), arg))
+				_, err := bot.Send(tgbotapi.NewMessage(int64(i), update.Message.CommandArguments()))
 				if err != nil {
 					logAll.Print("Что-то пошло не так при рассылке ["+string(i)+"]", err)
 				}
@@ -302,19 +235,19 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 
 		return
 	case "setmessage":
-		weather.CurrentWeather = arg
+		weather.CurrentWeather = update.Message.CommandArguments()
 		logAll.Print("Обновлена строка температуры на: " + weather.CurrentWeather)
 		message += "Готово!\n" + "'" + weather.CurrentWeather + "'"
 	case "sendmelog":
-		if arg == "data" || arg == "users" || arg == "labels" {
-			_, err := bot.Send(tgbotapi.NewMessage(myId, "Отправляю..."))
+		if update.Message.CommandArguments() == "data" || update.Message.CommandArguments() == "users" || update.Message.CommandArguments() == "labels" {
+			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Отправляю..."))
 			if err != nil {
 				logAll.Print("Что-то пошло не так при sendmelog", err)
 			}
 
 			var name string
 
-			switch arg {
+			switch update.Message.CommandArguments() {
 			case "data":
 				name = timeToStart
 			case "users":
@@ -322,9 +255,9 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 			case "labels":
 				name = customers.LabelsFile
 			}
-			_, err = bot.Send(tgbotapi.NewDocumentUpload(myId, name))
+			_, err = bot.Send(tgbotapi.NewDocumentUpload(loader.MyId, name))
 			if err != nil {
-				_, err = bot.Send(tgbotapi.NewMessage(myId, "Не удалось отправить файл."))
+				_, err = bot.Send(tgbotapi.NewMessage(loader.MyId, "Не удалось отправить файл."))
 				if err != nil {
 					logAll.Print("С отправкой файла всё плохо.")
 				}
@@ -332,7 +265,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 				logAll.Print("Ошибка отправки файла лога:", err)
 			}
 		} else {
-			_, err := bot.Send(tgbotapi.NewMessage(myId, "Попробуй ещё раз ввести аргументы правильно:\n"+
+			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Попробуй ещё раз ввести аргументы правильно:\n"+
 				"'data' - Файл полного лога.\n"+
 				"'users' - файл с пользователями.\n"+
 				"'labels' - файл с метками."))
@@ -347,7 +280,7 @@ func sendMembers(commands string, arg string, bot *tgbotapi.BotAPI) {
 		return
 	}
 
-	_, err := bot.Send(tgbotapi.NewMessage(myId, message))
+	_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, message))
 	if err != nil {
 		logAll.Print("Ошибка отправки сообщения - комманды:", err)
 	}
@@ -370,7 +303,7 @@ func main() {
 
 	info, err := schedule.GetAllSchedule("GK", &gkDate, &lkDate)
 	if err != nil {
-		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с GK"))
+		bot.Send(tgbotapi.NewMessage(loader.MyId, "Всё плохо с GK"))
 		logAll.Fatal("GK")
 	} else {
 		logAll.Print(info)
@@ -378,7 +311,7 @@ func main() {
 
 	info, err = schedule.GetAllSchedule("LK", &gkDate, &lkDate)
 	if err != nil {
-		bot.Send(tgbotapi.NewMessage(myId, "Всё плохо с LK"))
+		bot.Send(tgbotapi.NewMessage(loader.MyId, "Всё плохо с LK"))
 		logAll.Fatal("LK")
 	} else {
 		logAll.Print(info)
@@ -421,7 +354,7 @@ func main() {
 
 	logAll.Printf("Бот %s запущен.", bot.Self.UserName)
 
-	_, err = bot.Send(tgbotapi.NewMessage(myId, "Я перезагрузился."))
+	_, err = bot.Send(tgbotapi.NewMessage(loader.MyId, "Я перезагрузился."))
 	if err != nil {
 		logAll.Print("Не смог отправить весточку повелителю.", err)
 	}
@@ -449,6 +382,10 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(30 * time.Second)
+
+			if !menu.FlagToRunner {
+				return
+			}
 
 			err := loader.UpdateUserInfo(users)
 			if err != nil {
@@ -491,28 +428,6 @@ func main() {
 	}()
 
 	for update := range updates {
-		go func() {
-			msg, err := menu.MessageProcessing(update)
-			if err != nil {
-				log.Print(err)
-				return
-			}
-
-			bot.Send(msg)
-		}()
-
-		if update.Message == nil {
-			continue
-		}
-
-		if update.Message.From.ID == myId {
-			if update.Message.Command() == "reset" {
-				bot.Send(tgbotapi.NewMessage(myId, "Выключаюсь."))
-				logAll.Print("Выключаюсь по приказу.")
-				return
-			}
-		}
-
-		go processingMessages(bot, update)
+		go messages(bot, update)
 	}
 }
