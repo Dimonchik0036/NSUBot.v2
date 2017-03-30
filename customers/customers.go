@@ -6,9 +6,10 @@ import (
 	"regexp"
 )
 
-const MaxCountLabel = 6
+const MaxCountLabel = 8
 const LabelsFile = "labels.txt"
 const MyGroupLabel = "Моя"
+const MaxCountSymbol = 64
 
 type UserGroup struct {
 	Group   map[string]string
@@ -77,9 +78,11 @@ func UpdateUserLabels() error {
 
 func PrintUserLabels(id int) (userLabels string) {
 	g, ok := AllLabels[id]
-	if !ok {
+	if !ok || (g.MyGroup == "" && len(g.Group) == 0) {
 		return "Метки отсутствуют."
 	}
+
+	userLabels = "Список меток:"
 
 	if g.MyGroup != "" {
 		userLabels = "Моя группа " + g.MyGroup + ".\n"
@@ -95,48 +98,52 @@ func PrintUserLabels(id int) (userLabels string) {
 func DeleteUserLabels(id int) string {
 	g, ok := AllLabels[id]
 	if !ok || g.Group == nil || len(g.Group) == 0 {
-		return "Список меток пуст"
+		return "Список меток пуст."
 	}
 
 	for i := range g.Group {
 		delete(g.Group, i)
 	}
 
-	return "Были очищены все метки"
+	return "Были очищены все метки."
 }
 
-func GroupDecomposition(commang string) (group string, labelGroup string) {
+func GroupDecomposition(words string) (group string, labelGroup string) {
 	labelReg, err := regexp.Compile("[^ ]+")
 	if err != nil {
 		return "", ""
 	}
 
-	labelText := labelReg.FindAllString(commang, 2)
+	labelText := labelReg.FindAllStringIndex(words, 2)
 
 	if len(labelText) > 0 {
-		group = labelText[0]
+		group = words[:labelText[0][1]]
 	}
 
 	if len(labelText) > 1 {
-		labelGroup = labelText[1]
+		buf := []byte(words[labelText[1][0]:])
+		for ; (len(buf) > 0) && (buf[len(buf)-1] == ' '); buf = buf[:len(buf)-1] {
+		}
+
+		labelGroup = string(buf)
 	}
 
 	return
 }
 
 // AddGroupNumber Привязывает к пользователю номер группы.
-func AddGroupNumber(schedule map[string][7]string, id int, command string) string {
+func AddGroupNumber(schedule map[string][7]string, id int, command string) (bool, string) {
 	group, labelGroup := GroupDecomposition(command)
 	if group == "" {
-		return "Вы не ввели номер группы."
+		return false, "Вы не ввели номер группы, попробуте ещё раз:"
 	}
 
 	if labelGroup == "" {
 		labelGroup = MyGroupLabel
 	}
 
-	if (len(group) > 16) || (len(labelGroup) > 16) {
-		return "Слишком много символов."
+	if (len(group) > 16) || (len(labelGroup) > MaxCountSymbol) {
+		return false, "Слишком много символов, повторите попытку:"
 	}
 
 	_, ok := schedule[group]
@@ -144,7 +151,7 @@ func AddGroupNumber(schedule map[string][7]string, id int, command string) strin
 		group += ".1"
 		_, ok = schedule[group]
 		if !ok {
-			return "Введён некорректный номер группы, попробуйте повторить попытку или воспользоваться /help и /faq для помощи."
+			return false, "Введён некорректный номер группы, попробуйте повторить попытку:"
 		}
 	}
 
@@ -159,13 +166,12 @@ func AddGroupNumber(schedule map[string][7]string, id int, command string) strin
 		}
 
 		if len(v.Group) > MaxCountLabel+1 {
-			return "Превышен лимит меток."
+			return false, "Предел"
 		}
 
 		_, okay = v.Group[labelGroup]
 		if !okay && (len(v.Group) == MaxCountLabel) {
-			return "Вы достигли предела меток. Вы можете изменять группы, привязанные к меткам, но не можете добавлять новые.\n" +
-				"Вы можете очистить список меток, воспользовавшись командой /clearlabels."
+			return false, "Предел"
 		}
 
 		if len(v.Group) == MaxCountLabel {
@@ -178,12 +184,12 @@ func AddGroupNumber(schedule map[string][7]string, id int, command string) strin
 	AllLabels[id] = v
 
 	if labelGroup == MyGroupLabel {
-		return "Группа '" + group + "' успешно назначена стандартной."
+		return true, "Группа '" + group + "' успешно назначена стандартной."
 	} else {
 		if okay {
-			return "Изменена группа у метки \"" + labelGroup + "\" на " + group + "."
+			return true, "Изменена группа у метки \"" + labelGroup + "\" на " + group + "."
 		} else {
-			return "Добавлена новая метка '" + labelGroup + "' для группы " + group + "."
+			return true, "Добавлена новая метка '" + labelGroup + "' для группы " + group + "."
 		}
 	}
 }

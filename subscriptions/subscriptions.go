@@ -138,19 +138,29 @@ func GetNewPosts() (result [][2]string) {
 		return nil
 	}
 
+	if len(p) == 0 {
+		return nil
+	}
+
 	if (p[1][0] == "" && p[0][0] == "") ||
 		(p[1][0] == LatestPosts[1][0]) && (p[0][0] == LatestPosts[0][0]) {
 
 		return nil
 	}
 
-	var index int = 1
-	for ; (index < CountPost) && (p[index][0] != LatestPosts[1][0]); index++ {
-	}
+	for i := len(p) - 1; i > 0; i-- {
+		flag := true
 
-	tmp := p[1:index]
-	for i := len(tmp) - 1; i >= 0; i-- {
-		result = append(result, tmp[i])
+		for j := 1; j < len(LatestPosts); j++ {
+			if p[i] == LatestPosts[j] {
+				flag = false
+				break
+			}
+		}
+
+		if flag {
+			result = append(result, p[i])
+		}
 	}
 
 	if p[0][0] != LatestPosts[0][0] {

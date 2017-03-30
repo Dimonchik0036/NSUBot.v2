@@ -33,6 +33,8 @@ type Subscriptions struct {
 var UserFileName string = "users_info.txt"
 var TimeFormat string = "02.01.06 15:04:10"
 
+const MyId = 227605930
+
 func LoadUsersSubscriptions() error {
 	userFile, err := os.OpenFile(subscriptions.FileUsersSubscriptions, os.O_RDWR, os.ModePerm)
 	if err != nil {
@@ -205,10 +207,11 @@ func LoadUsers(users map[int]string) (int, error) {
 		}
 
 		info, err := json.Marshal(u)
-		if err == nil {
-			users[u.ID] = string(info)
+		if err != nil {
+			continue
 		}
 
+		users[u.ID] = string(info)
 		countUsers++
 	}
 
@@ -302,9 +305,11 @@ func ReloadUserDate(users map[int]string, id int) error {
 	u.TimeLastAction = time.Now().Format(TimeFormat)
 
 	res, err := json.Marshal(u)
-	if err == nil {
-		users[id] = string(res)
+	if err != nil {
+		return err
 	}
+
+	users[id] = string(res)
 
 	return nil
 }

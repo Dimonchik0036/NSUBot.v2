@@ -334,17 +334,19 @@ func ParseSchedule(group string, gkDate *string, lkDate *string) (info string, e
 }
 
 // PrintSchedule Возвращает расписание.
-func PrintSchedule(group string, offset int, id int) string {
-	if len(group) > 16 {
-		return "Введите корректный номер группы."
+func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bool) {
+	if len(group) > customers.MaxCountSymbol {
+		return "Слишком много символов, повторите попытку:", false
 	}
 
-	if group == "" {
-		group = customers.AllLabels[id].MyGroup
-	} else {
-		defaultGroup, ok := customers.AllLabels[id].Group[group]
-		if ok {
-			group = defaultGroup
+	if !onlyGroup {
+		if group == "" {
+			group = customers.AllLabels[id].MyGroup
+		} else {
+			defaultGroup, ok := customers.AllLabels[id].Group[group]
+			if ok {
+				group = defaultGroup
+			}
 		}
 	}
 
@@ -353,7 +355,7 @@ func PrintSchedule(group string, offset int, id int) string {
 		group += ".1"
 		v, ok = TableSchedule[group]
 		if !ok {
-			return "Неверно задан номер группы. Воспользуйтесь /help или /faq для помощи."
+			return "Группа с таким номером не найдена, попробуйте скорректировать запрос:", false
 		}
 	}
 
@@ -386,5 +388,5 @@ func PrintSchedule(group string, offset int, id int) string {
 		number = 6
 	}
 
-	return textDay[(number+offset)%7] + "\n" + v[(number+offset)%7]
+	return textDay[(number+offset)%7] + "\n" + v[(number+offset)%7], true
 }
