@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-const MaxCountLabel = 8
+const MaxCountLabel = 20
 const LabelsFile = "labels.txt"
 const MyGroupLabel = "Моя"
 const MaxCountSymbol = 64

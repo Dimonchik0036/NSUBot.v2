@@ -48,11 +48,14 @@ const today_text = "Расписание на сегодня:"
 const tomorrow_text = "Расписание на завтра:"
 const today = "today"
 const tomorrow = "tomorrow"
+const faq = "faq"
 
 var FlagToRunner = true
 
+var Logger *log.Logger
+
 func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err error) {
-	log.Print("CallbackQuery: ", update.CallbackQuery.Data, " ID: ", update.CallbackQuery.From.ID, " MessageID:", update.CallbackQuery.Message.MessageID)
+	Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID:", update.CallbackQuery.From.ID, " CallbackQuery: ", update.CallbackQuery.Data, " ID: ", update.CallbackQuery.From.ID, " MessageID:", update.CallbackQuery.Message.MessageID)
 
 	data := update.CallbackQuery.Data
 	q, ok := queue[update.CallbackQuery.From.ID]
@@ -64,6 +67,15 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 	queue[update.CallbackQuery.From.ID] = queueType{false, false, "", "", 0}
 
 	switch data {
+	case faq:
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, FaqText())
+		k := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(BackButtonText, tag_options),
+			tgbotapi.NewInlineKeyboardButtonData(MainButtonText, tag_main)))
+
+		msg.ReplyMarkup = &k
+
+		answer = msg
 	case subscriptions.NsuHelp:
 		_, markup, err := SubscriptionsMenu(tag_main)
 		if err != nil {
@@ -307,30 +319,30 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 	}
 
 	if update.InlineQuery != nil {
-		log.Print("InlineQuery")
+		Logger.Print("InlineQuery")
 	}
 
 	if update.ChosenInlineResult != nil {
-		log.Print("ChosenInlineResult")
+		Logger.Print("ChosenInlineResult")
 	}
 
 	if update.ChannelPost != nil {
-		log.Print("ChannelPost")
+		Logger.Print("ChannelPost")
 	}
 
 	if update.Message != nil {
-		log.Print("MessageText: ", update.Message.Text, " ID:", update.Message.From.ID)
+		Logger.Print("MessageText: ", update.Message.Text, " ID:", update.Message.From.ID)
 
 		command := update.Message.Command()
 		arguments := update.Message.CommandArguments()
 
-		if !update.Message.IsCommand() {
-			command = queue[update.Message.From.ID].command
+		q, ok := queue[update.Message.From.ID]
+		queue[update.Message.From.ID] = queueType{false, q.showButton, "", "", 0}
+
+		if !update.Message.IsCommand() && ok {
+			command = q.command
 			arguments = update.Message.Text
 		}
-
-		q := queue[update.Message.From.ID]
-		queue[update.Message.From.ID] = queueType{false, q.showButton, "", "", 0}
 
 		switch command {
 		case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
@@ -478,21 +490,7 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 		case "nsuhelp":
 			answer = tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(update.Message.From.ID, "Помогу в НГУ"))
 		case "faq":
-			answer = tgbotapi.NewMessage(update.Message.Chat.ID,
-				"Q: Можно ли пользоваться командой /today и /tomorrow и не вводить номер группы каждый раз?\n"+
-					"A: Да, можно. Для этого необходимо воспользоваться командой /setgroup.\n\n"+
-
-					"Q: Как установить номер группы для быстрого доступа?\n"+
-					"A: Необходимо ввести /setgroup <номер группы>, где <номер группы> - это желаемый номер группы(треугольные скобки писать не нужно).\n"+
-					"Пример: /setgroup 16211.1\n\n"+
-
-					"Q: Можно ли посмотреть расписание, если не работает официальный сайт с расписанием?\n"+
-					"A: Да, можно.\n\n"+
-
-					"Q: Как часто обновляется расписание?\n"+
-					"A: Сразу же после изменений в официальном расписании.\n\n"+
-
-					"Если у Вас остались ещё какие-то вопросы, то их можно задать мне @dimonchik0036.")
+			answer = tgbotapi.NewMessage(update.Message.Chat.ID, FaqText())
 		}
 
 	}
@@ -502,6 +500,23 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 	}
 
 	return
+}
+
+func FaqText() string {
+	return "Q: Можно ли пользоваться командой /today и /tomorrow и не вводить номер группы каждый раз?\n" +
+		"A: Да, можно. Для этого необходимо воспользоваться командой /setgroup.\n\n" +
+
+		"Q: Как установить номер группы для быстрого доступа?\n" +
+		"A: Необходимо ввести /setgroup <номер группы>, где <номер группы> - это желаемый номер группы(треугольные скобки писать не нужно).\n" +
+		"Пример: /setgroup 16211.1\n\n" +
+
+		"Q: Можно ли посмотреть расписание, если не работает официальный сайт с расписанием?\n" +
+		"A: Да, можно.\n\n" +
+
+		"Q: Как часто обновляется расписание?\n" +
+		"A: Сразу же после изменений в официальном расписании.\n\n" +
+
+		"Если у Вас остались ещё какие-то вопросы, то их можно задать мне @dimonchik0036."
 }
 
 func MainMenu() (text string, markup tgbotapi.InlineKeyboardMarkup, err error) {
@@ -525,7 +540,10 @@ func OptionsMenu(oldMenu string) (text string, markup tgbotapi.InlineKeyboardMar
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Управление метками", tag_labels)),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(BackButtonText, oldMenu)))
+			tgbotapi.NewInlineKeyboardButtonData("FAQ", faq)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(BackButtonText, oldMenu)),
+	)
 
 	text = "Дополнительные функции"
 

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
+	"os"
 	"strconv"
 	"time"
 )
@@ -34,7 +35,7 @@ var timeToStart string
 var logAll *log.Logger
 
 // Личные данные
-const botToken = "325933326:AAFWjDWFPKFjAMg9MDr_Av-g643F_UhJmNY"
+const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
 
 func messageLog(update tgbotapi.Update) {
 	if update.Message != nil {
@@ -289,6 +290,11 @@ func sendMembers(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 func main() {
 	var err error
 
+	f, err := os.OpenFile("Update"+time.Now().Format("2006-01-02T15-04")+".txt", os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err == nil {
+		menu.Logger = log.New(f, "", log.LstdFlags)
+	}
+
 	timeToStart, err = loader.LoadLoggers(&logAll)
 	if err != nil {
 		log.Fatal(err)
@@ -381,7 +387,7 @@ func main() {
 
 	go func() {
 		for {
-			time.Sleep(30 * time.Second)
+			time.Sleep(7 * time.Minute)
 
 			if !menu.FlagToRunner {
 				return
