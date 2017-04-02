@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-	"os"
 	"strconv"
 	"time"
 )
@@ -38,17 +37,20 @@ var logAll *log.Logger
 const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
 
 func messageLog(update tgbotapi.Update) {
-	if update.Message != nil {
-		if update.Message.Chat.IsGroup() || update.Message.Chat.IsChannel() || update.Message.Chat.IsSuperGroup() {
-			logAll.Printf("[%d] %s",
-				update.Message.Chat.ID, "'"+
-					update.Message.Chat.Title+"' "+
-					update.Message.From.FirstName+" "+
-					update.Message.From.LastName+" (@"+
-					update.Message.From.UserName+")")
+	if update.Message == nil {
+		return
+	}
 
-		}
+	if (update.Message.Chat.IsGroup() || update.Message.Chat.IsChannel() || update.Message.Chat.IsSuperGroup()) && update.Message.IsCommand() {
+		logAll.Printf("[%d] %s",
+			update.Message.Chat.ID, "'"+
+				update.Message.Chat.Title+"' "+
+				update.Message.From.FirstName+" "+
+				update.Message.From.LastName+" (@"+
+				update.Message.From.UserName+")")
 
+	}
+	if update.Message.IsCommand() {
 		logAll.Printf("[%d] %s: %s",
 			update.Message.From.ID,
 			update.Message.From.FirstName+" "+
@@ -56,6 +58,7 @@ func messageLog(update tgbotapi.Update) {
 				update.Message.From.UserName+")",
 			update.Message.Text)
 	}
+
 }
 
 func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
@@ -76,7 +79,7 @@ func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 		}
 	}
 
-	m, ok, err := loader.NewUserInfo(users, &update)
+	m, ok, err := loader.NewUserInfo(users, update)
 	if err != nil {
 		return err
 	}
@@ -95,15 +98,15 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	processingUser(bot, update)
 	messageLog(update)
 
-	m, err := menu.MessageProcessing(update)
-	if err != nil {
-		log.Print(err)
-		return
+	m, err := menu.MessageProcessing(bot, update)
+	if err == nil {
+		bot.Send(m)
+
+	} else {
+		logAll.Print(err)
 	}
 
-	bot.Send(m)
-
-	sendMembers(update, bot)
+	sendMembers(bot, update)
 
 	if update.Message == nil {
 		return
@@ -136,13 +139,6 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 				}
 			} else {
 				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна.")
-			}
-		case "feedback", "f":
-			if update.Message.CommandArguments() != "" {
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за обратную связь.")
-				bot.Send(tgbotapi.NewMessage(loader.MyId, update.Message.CommandArguments()+"\n\nОтзыв от:\n"+loader.WriteUsers(users[update.Message.From.ID])))
-			} else {
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Вы забыли набрать сообщение.")
 			}
 		default:
 			nilMsg = true
@@ -187,7 +183,7 @@ func newChat(chat *tgbotapi.Chat) string {
 }
 
 // sendMembers Отправляет статистику по пользователям
-func sendMembers(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
+func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	if update.Message == nil || update.Message.From.ID != loader.MyId {
 		return
 	}
@@ -281,6 +277,15 @@ func sendMembers(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 		return
 	}
 
+	for len(message) > 4500 {
+		_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, message[:4500]))
+		if err != nil {
+			logAll.Print("Ошибка отправки сообщения - комманды:", err)
+		}
+
+		message = message[4500:]
+	}
+
 	_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, message))
 	if err != nil {
 		logAll.Print("Ошибка отправки сообщения - комманды:", err)
@@ -289,12 +294,6 @@ func sendMembers(update tgbotapi.Update, bot *tgbotapi.BotAPI) {
 
 func main() {
 	var err error
-
-	f, err := os.OpenFile("Update"+time.Now().Format("2006-01-02T15-04")+".txt", os.O_CREATE|os.O_RDWR, os.ModePerm)
-	if err == nil {
-		menu.Logger = log.New(f, "", log.LstdFlags)
-	}
-
 	timeToStart, err = loader.LoadLoggers(&logAll)
 	if err != nil {
 		log.Fatal(err)
@@ -378,10 +377,25 @@ func main() {
 		log.Fatal(err)
 	}
 
-	loader.LoadChats(chats)
-	loader.LoadUserGroup()
-	loader.LoadSchedule()
-	loader.LoadUsersSubscriptions()
+	err = loader.LoadChats(chats)
+	if err != nil {
+		logAll.Print(err)
+	}
+
+	err = loader.LoadUserGroup()
+	if err != nil {
+		logAll.Print(err)
+	}
+
+	err = loader.LoadSchedule()
+	if err != nil {
+		logAll.Print(err)
+	}
+
+	err = loader.LoadUsersSubscriptions()
+	if err != nil {
+		logAll.Print(err)
+	}
 
 	go SendJokesAll(bot)
 
@@ -411,6 +425,12 @@ func main() {
 	}()
 
 	go func() {
+		for a := subscriptions.GetNewPosts(); len(a) == 0 || (a[0][1] == "" && a[1][0] == ""); a = subscriptions.GetNewPosts() {
+			time.Sleep(5 * time.Second)
+		}
+
+		logAll.Print("Удачно загрузилась парсилка.")
+
 		for {
 			a := subscriptions.GetNewPosts()
 			if len(a) != 0 {

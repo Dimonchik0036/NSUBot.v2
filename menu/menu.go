@@ -9,7 +9,6 @@ import (
 	"TelegramBot/weather"
 	"errors"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
-	"log"
 	"os"
 	"time"
 )
@@ -49,13 +48,13 @@ const tomorrow_text = "Расписание на завтра:"
 const today = "today"
 const tomorrow = "tomorrow"
 const faq = "faq"
+const feedback = "feedback"
+const tag_keyboard = "keyboard"
 
 var FlagToRunner = true
 
-var Logger *log.Logger
-
-func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err error) {
-	Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID:", update.CallbackQuery.From.ID, " CallbackQuery: ", update.CallbackQuery.Data, " ID: ", update.CallbackQuery.From.ID, " MessageID:", update.CallbackQuery.Message.MessageID)
+func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (answer tgbotapi.Chattable, err error) {
+	loader.Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID: ", update.CallbackQuery.From.ID, " CallbackQuery: ", update.CallbackQuery.Data, " ID: ", update.CallbackQuery.From.ID, " MessageID: ", update.CallbackQuery.Message.MessageID)
 
 	data := update.CallbackQuery.Data
 	q, ok := queue[update.CallbackQuery.From.ID]
@@ -67,6 +66,21 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 	queue[update.CallbackQuery.From.ID] = queueType{false, false, "", "", 0}
 
 	switch data {
+	case tag_keyboard:
+		text := "Не удалось активировать квалиатуру, попробуйсте чуть позже."
+		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
+
+		markup, err := MainKeyboard()
+		if err == nil {
+			msg.Text = "Клавиатура активирована."
+			msg.ReplyMarkup = markup
+		}
+
+		answer = msg
+	case feedback:
+		queue[update.CallbackQuery.From.ID] = queueType{true, true, feedback, tag_options, update.CallbackQuery.Message.MessageID}
+
+		answer = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Наберите свой отзыв:")
 	case faq:
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, FaqText())
 		k := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
@@ -83,6 +97,7 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 		}
 
 		text := subscriptions.ChangeSubscriptions(update.CallbackQuery.From.ID, "Помогу в НГУ")
+		loader.Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID: ", update.CallbackQuery.From.ID, " Разультат: "+text)
 
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
 		msg.ReplyMarkup = &markup
@@ -99,7 +114,7 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 
 		answer = msg
 	case tag_labels:
-		text, markup, err := LabelsMenu(tag_options)
+		text, markup, err := LabelsMenu(tag_schedule)
 		if err != nil {
 			break
 		}
@@ -117,6 +132,7 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 
 			customers.AllLabels[update.CallbackQuery.From.ID] = v
 		} else {
+			loader.Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID: ", update.CallbackQuery.From.ID, " Пытается удалить метку \""+update.CallbackQuery.Data+"\"")
 			delete(customers.AllLabels[update.CallbackQuery.From.ID].Group, update.CallbackQuery.Data)
 		}
 
@@ -125,12 +141,14 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 			break
 		}
 
+		loader.Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID: ", update.CallbackQuery.From.ID, " Пытается удалить метку \""+update.CallbackQuery.Data+"\"")
+
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
 		msg.ReplyMarkup = &markup
 
 		answer = msg
 	case tag_clear_labels:
-		_, markup, err := LabelsMenu(tag_labels)
+		_, markup, err := LabelsMenu(tag_schedule)
 		if err != nil {
 			break
 		}
@@ -142,15 +160,12 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 
 		answer = msg
 	case tag_show_labels:
-		_, markup, err := LabelsMenu(tag_options)
-		if err != nil {
-			break
-		}
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, customers.PrintUserLabels(update.CallbackQuery.From.ID))
+		k := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(BackButtonText, tag_labels),
+			tgbotapi.NewInlineKeyboardButtonData(MainButtonText, tag_main)))
 
-		text := customers.PrintUserLabels(update.CallbackQuery.From.ID)
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
-		msg.ReplyMarkup = &markup
+		msg.ReplyMarkup = &k
 
 		answer = msg
 	case tag_today, tag_tomorrow:
@@ -213,6 +228,13 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 				d = today
 			case different_tomorrow:
 				d = tomorrow
+			case tag_usergroup:
+				d = tag_usergroup
+			}
+
+			if d == tag_usergroup {
+				answer = NewUserGroup(update)
+				break
 			}
 
 			if d != "" {
@@ -262,13 +284,11 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 
 		answer = msg
 	case tag_weather:
-		_, markup, err := MainMenu()
-		if err != nil {
-			break
-		}
-
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, weather.CurrentWeather)
-		msg.ReplyMarkup = &markup
+		k := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(BackButtonText, tag_main)))
+
+		msg.ReplyMarkup = &k
 
 		answer = msg
 	case tag_schedule:
@@ -292,9 +312,7 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 
 		answer = msg
 	case tag_usergroup:
-		queue[update.CallbackQuery.From.ID] = queueType{true, true, "setgroup", "", 0}
-
-		answer = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Введите номер группы и название метки:")
+		answer = NewUserGroup(update)
 	default:
 		_, markup, err := MainMenu()
 		if err != nil {
@@ -312,26 +330,33 @@ func ProcessingCallback(update tgbotapi.Update) (answer tgbotapi.Chattable, err 
 	return
 }
 
-func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err error) {
+func NewUserGroup(update tgbotapi.Update) (answer tgbotapi.Chattable) {
+	queue[update.CallbackQuery.From.ID] = queueType{true, true, "setgroup", "", 0}
+
+	answer = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Если вы хотите добавить свою группу в избранное, то введите её номер.\n\nЕсли вы хотите добавить/изменить метку, то введите номер группы и название метки через пробел:")
+	return
+}
+
+func MessageProcessing(bot *tgbotapi.BotAPI, update tgbotapi.Update) (answer tgbotapi.Chattable, err error) {
 	if update.CallbackQuery != nil {
-		answer, err = ProcessingCallback(update)
+		answer, err = ProcessingCallback(bot, update)
 		return
 	}
 
 	if update.InlineQuery != nil {
-		Logger.Print("InlineQuery")
+		loader.Logger.Print("InlineQuery")
 	}
 
 	if update.ChosenInlineResult != nil {
-		Logger.Print("ChosenInlineResult")
+		loader.Logger.Print("ChosenInlineResult")
 	}
 
 	if update.ChannelPost != nil {
-		Logger.Print("ChannelPost")
+		loader.Logger.Print("ChannelPost")
 	}
 
 	if update.Message != nil {
-		Logger.Print("MessageText: ", update.Message.Text, " ID:", update.Message.From.ID)
+		loader.Logger.Print("["+update.Message.From.UserName+"]"+update.Message.From.FirstName+" "+update.Message.From.LastName+" ID: ", update.Message.From.ID, " MessageText: ", update.Message.Text, " ID: ", update.Message.From.ID)
 
 		command := update.Message.Command()
 		arguments := update.Message.CommandArguments()
@@ -345,6 +370,22 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 		}
 
 		switch command {
+		case feedback:
+			if arguments != "" {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за отзыв!")
+
+				msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(
+					tgbotapi.NewInlineKeyboardButtonData(BackButtonText, tag_options),
+					tgbotapi.NewInlineKeyboardButtonData(MainButtonText, tag_main)))
+				answer = msg
+
+				bot.Send(tgbotapi.NewMessage(loader.MyId, arguments+"\n\nОтзыв от:\n["+update.Message.From.UserName+"] "+update.Message.From.LastName+" "+update.Message.From.FirstName))
+				break
+			}
+
+			queue[update.Message.From.ID] = queueType{true, q.showButton, feedback, tag_options, update.Message.MessageID}
+
+			answer = tgbotapi.NewMessage(update.Message.Chat.ID, "Наберите свой отзыв:")
 		case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 			answer = tgbotapi.NewMessage(update.Message.Chat.ID, "Мой телеграм: @Dimonchik0036\nМой GitHub: github.com/dimonchik0036")
 		case "reset":
@@ -365,9 +406,9 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 			answer = tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather)
 		case "start":
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-				"Привет!\nЯ - твой помощник, сейчас я покажу тебе, что могу.\n\n"+GetHelp(""))
+				"Привет!\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, чтобы было проще возвращаться к меню.")
 
-			markup, err := MainKeyboard()
+			_, markup, err := MainMenu()
 			if err == nil {
 				msg.ReplyMarkup = markup
 			}
@@ -436,9 +477,10 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 			ok, text := customers.AddGroupNumber(schedule.TableSchedule, update.Message.From.ID, arguments)
 			if ok {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+				loader.Logger.Print("["+update.Message.From.UserName+"]"+update.Message.From.FirstName+" "+update.Message.From.LastName+" ID: ", update.Message.From.ID, " Результат: "+text)
 
 				if q.showButton {
-					_, markup, err := LabelsMenu(tag_options)
+					_, markup, err := LabelsMenu(tag_schedule)
 					if err == nil {
 						msg.ReplyMarkup = markup
 					}
@@ -455,21 +497,21 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 				} else {
 					queue[update.Message.From.ID] = queueType{false, false, "", "", 0}
 
-					msg.Text = "Вы достигли предела меток. Теперь Вы можете только очистить список меток, воспользовавшись командой /clearlabels, " +
+					msg.Text = "Вы достигли предела меток. Теперь вы можете только очистить список меток, воспользовавшись командой /clearlabels, " +
 						"или изменять группы, привязанные к меткам, но не можете добавлять новые."
 
 					if q.showButton {
-						_, markup, err := LabelsMenu(tag_options)
+						_, markup, err := LabelsMenu(tag_schedule)
 						if err == nil {
 							msg.ReplyMarkup = markup
-							msg.Text = "Вы достигли предела меток. Теперь Вы можете только очистить список меток " +
+							msg.Text = "Вы достигли предела меток. Теперь вы можете только очистить список меток " +
 								"или изменить группы, привязанные к меткам, но не можете добавлять новые."
 						}
 					}
 				}
 
 				if !q.run {
-					text = "Введите номер группы и название метки:"
+					text = "Если вы хотите добавить свою группу в избранное, то введите её номер.\n\nЕсли вы хотите добавить/изменить метку, то введите номер группы и название метки через пробел:"
 				}
 
 				answer = msg
@@ -503,12 +545,9 @@ func MessageProcessing(update tgbotapi.Update) (answer tgbotapi.Chattable, err e
 }
 
 func FaqText() string {
-	return "Q: Можно ли пользоваться командой /today и /tomorrow и не вводить номер группы каждый раз?\n" +
-		"A: Да, можно. Для этого необходимо воспользоваться командой /setgroup.\n\n" +
-
-		"Q: Как установить номер группы для быстрого доступа?\n" +
-		"A: Необходимо ввести /setgroup <номер группы>, где <номер группы> - это желаемый номер группы(треугольные скобки писать не нужно).\n" +
-		"Пример: /setgroup 16211.1\n\n" +
+	return "Для тех, кому /help мало.\n\n" +
+		"Q: Как установить метку на группу?\n" +
+		"A: Воспользоваться /menu » Расписание » Управление метками » Добавить метку.\n\n" +
 
 		"Q: Можно ли посмотреть расписание, если не работает официальный сайт с расписанием?\n" +
 		"A: Да, можно.\n\n" +
@@ -538,7 +577,9 @@ func MainMenu() (text string, markup tgbotapi.InlineKeyboardMarkup, err error) {
 func OptionsMenu(oldMenu string) (text string, markup tgbotapi.InlineKeyboardMarkup, err error) {
 	markup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Управление метками", tag_labels)),
+			tgbotapi.NewInlineKeyboardButtonData("Включить клавиатуру", tag_keyboard)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Оставить отзыв", feedback)),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("FAQ", faq)),
 		tgbotapi.NewInlineKeyboardRow(
@@ -574,6 +615,8 @@ func ScheduleMenu(oldMenu string) (text string, markup tgbotapi.InlineKeyboardMa
 			tgbotapi.NewInlineKeyboardButtonData("На сегодня", tag_today), tgbotapi.NewInlineKeyboardButtonData("На завтра", tag_tomorrow)),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("На всю неделю", tag_week)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Управление метками", tag_labels)),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(BackButtonText, oldMenu)))
 
@@ -611,6 +654,8 @@ func ShowLabelsButton(oldMenu string, labels customers.UserGroup, group bool) (r
 	if group {
 		if labels.MyGroup != "" {
 			rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Моё", labels.MyGroup)))
+		} else {
+			rows = append(rows, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить свою группу", tag_usergroup)))
 		}
 
 		for l, g := range labels.Group {
@@ -681,50 +726,21 @@ func SubscriptionsMenu(oldMenu string) (text string, markup tgbotapi.InlineKeybo
 func GetHelp(arg string) (text string) {
 	switch arg {
 	case "setgroup":
-		text = "Команда позволяет назначить группу для быстрого доступа.\n" +
-			"Например, если ввести \"/setgroup 16211.1\", то при использовании /today или /tomorrow без аргументов, будет показываться расписание группы 16211.1\n\n" +
-			"Если ввести \"/setgroup <номер группы>\", то эта группа будет вызываться по умолчанию, " +
-			"тоесть можно будет писать /today или /tomorrow без каких либо номеров групп.\n\n" +
-			"Команда \"/setgroup <номер группы>  <метка>\" позволяет привязать группу к какой-то метке, " +
-			"в качестве метки может выступать любая последовательность символов, не содержащая пробелов.\n" +
-			"Чтобы воспрользоваться метками, достаточно ввести \"/today <метка>\" или \"/tomorrow <метка>\"."
+		text = "Раздел управления меток находится /menu » Расписание » Управление метками."
 	case today, tomorrow:
-		text = "/today <номер группы | метка> - Показывает расписание занятий на сегодня, пример: \"/today 16211.1\".\n" +
-			"/tomorrow <номер группы | метка> - Показывает расписание занятий на завтра, пример: \"/tomorrow 16211.1\".\n\n" +
-			"Для вызова этих команд необходимо ввести номер группы. Если воспользоваться командой /setgroup, " +
-			"то появится возможность использовать метки вместо номера группы, либо вовсе не писать ничего, " +
-			"если добавить свою группу в стандартные (подробнее можно прочитать в \"/help setgroup\")."
-	case "weather":
-		text = "/weather - Показать температуру воздуха около НГУ."
-	case "labels":
-		text = "/labels - Показывает записанные метки."
-	case "clearlabels":
-		text = "/clearlabels - Очищает все метки, кроме стандартной."
-	case "feedback":
-		text = "/feedback <текст> - Оставить отзыв, который будет услышан."
-	case "nsuhelp":
-		text = "/nsuhelp - Управление подпиской на рассылку новостей из группы \"Помогу в НГУ\".\n\n" +
-			"Позволяет подписаться на рассылку новых новостей из группы \"Помогу в НГУ\"."
+		text = "Достаточно в /menu выбрать пункт Расписание и далее следовать по зову сердца."
 	case "secret":
 		text = "ACHTUNG! Использование этих команд запрещено на территории РФ. Автор ответственности не несёт, используйте на свой страх и риск. \n\n" +
 			"/joke - Показывает бородатый анекдот.\n" +
 			"/subjoke - Подписывает на рассылку бородатых анекдотов. Именно их можно получить, используя /joke\n" +
 			"/post <ID группы в VK> - Показывает закреплённый и 4 обычных поста из этой группы VK.\n\n" +
-			"/creator - Используешь -> ? -> PROFIT!"
+			"/creator - Используешь » ? » PROFIT!"
 	default:
-		text = "Список команд:\n" +
-			"/help - Показать список команд\n\n" +
-			"/weather - Показать температуру воздуха около НГУ\n\n" +
-			"/today <номер группы | метка> - Показывает расписание занятий конкретной группы.\n\n" +
-			"/tomorrow <номер группы | метка> - Показывает расписание занятий конкретной группы на завтра.\n\n" +
-			"/setgroup <номер группы + метка> - Устанавливает номер группы для быстрого доступа.\n\n" +
-			"/labels - Показывает записанные метки.\n\n" +
-			"/clearlabels - Очищает все метки, кроме стандартной.\n\n" +
-			"/nsuhelp - Управление подпиской на рассылку новостей из группы \"Помогу в НГУ\".\n\n" +
-			"/feedback <текст> - Оставить отзыв, который будет услышан.\n\n" +
-			"/faq - Типичные вопросы и ответы на них.\n\n" +
-			"Для подробного описания команд, введите \"/help <команда>\". Например, \"/help setgroup\".\n\n" +
-			"P.S. Значёк <|> в расписании показывает, что это двойная пара. Отображение только текущей недели будет добавлено чуть позже."
+		text = "Подсказки по использованию Помощника:\n\n" +
+			"Если вы интересуетесь расписанием занятий, то Вам будет удобно добавить группы в избранное (далее метки), " +
+			"это позволит вызывать расписание без особых усилий.\n" +
+			"Раздел управления меток находится /menu » Расписание » Управление метками.\n\n" +
+			"Ответы на дополнительные вопросы можно получить через /faq."
 	}
 
 	return text

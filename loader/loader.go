@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+var Logger *log.Logger
+
 type UserInfo struct {
 	TimeCreate     string `json:"TimeCreate"`
 	TimeLastAction string `json:"TimeLastAction"`
@@ -121,6 +123,8 @@ func LoadLoggers(logAll **log.Logger) (filenameLogAll string, err error) {
 
 	*logAll = log.New(fileLoggerAll, "", log.LstdFlags)
 	(*logAll).Println("Начинаю.")
+
+	Logger = *logAll
 
 	return
 }
@@ -239,7 +243,11 @@ func UpdateUserInfo(users map[int]string) error {
 }
 
 // NewUserInfo Возвращает строку с новым пользователем
-func NewUserInfo(users map[int]string, update *tgbotapi.Update) (string, bool, error) {
+func NewUserInfo(users map[int]string, update tgbotapi.Update) (string, bool, error) {
+	if update.Message == nil {
+		return "", false, errors.New("Не сообщение")
+	}
+
 	_, ok := users[update.Message.From.ID]
 	if ok {
 		return "", false, nil
