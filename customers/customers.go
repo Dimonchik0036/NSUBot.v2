@@ -108,24 +108,20 @@ func DeleteUserLabels(id int) string {
 	return "Были очищены все метки."
 }
 
-func GroupDecomposition(words string) (group string, labelGroup string) {
-	labelReg, err := regexp.Compile("[^ ]+")
+func DecomposeQuery(words string) (command string, arguments string) {
+	labelReg, err := regexp.Compile("[^ ]*")
 	if err != nil {
 		return "", ""
 	}
 
-	labelText := labelReg.FindAllStringIndex(words, 2)
+	index := labelReg.FindStringIndex(words)
 
-	if len(labelText) > 0 {
-		group = words[:labelText[0][1]]
-	}
+	if len(index) > 0 {
+		command = words[index[0]:index[1]]
 
-	if len(labelText) > 1 {
-		buf := []byte(words[labelText[1][0]:])
-		for ; (len(buf) > 0) && (buf[len(buf)-1] == ' '); buf = buf[:len(buf)-1] {
+		if len(words) > index[1] {
+			arguments = words[index[1]+1:]
 		}
-
-		labelGroup = string(buf)
 	}
 
 	return
@@ -133,7 +129,7 @@ func GroupDecomposition(words string) (group string, labelGroup string) {
 
 // AddGroupNumber Привязывает к пользователю номер группы.
 func AddGroupNumber(schedule map[string][7]string, id int, command string) (bool, string) {
-	group, labelGroup := GroupDecomposition(command)
+	group, labelGroup := DecomposeQuery(command)
 	if group == "" {
 		return false, "Вы не ввели номер группы, попробуте ещё раз:"
 	}

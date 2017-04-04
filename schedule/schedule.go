@@ -336,7 +336,7 @@ func ParseSchedule(group string, gkDate *string, lkDate *string) (info string, e
 // PrintSchedule Возвращает расписание.
 func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bool) {
 	if len(group) > customers.MaxCountSymbol {
-		return "Слишком много символов, повторите попытку:", false
+		return "Слишком много символов, повторите попытку", false
 	}
 
 	if !onlyGroup {
@@ -355,7 +355,7 @@ func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bo
 		group += ".1"
 		v, ok = TableSchedule[group]
 		if !ok {
-			return "Группа с таким номером не найдена, попробуйте скорректировать запрос:", false
+			return "Группа с таким номером не найдена, попробуйте скорректировать запрос", false
 		}
 	}
 
