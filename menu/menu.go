@@ -75,7 +75,7 @@ func MessageProcessing(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error) {
 	command, argument := customers.DecomposeQuery(update.CallbackQuery.Data)
 
-	loader.Logger.Print("[", update.CallbackQuery.From.ID, "] "+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
+	loader.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
 
 	switch command {
 	case tag_keyboard:
@@ -102,7 +102,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		bot.Send(msg)
 	case subscriptions.NsuHelp:
 		text := subscriptions.ChangeSubscriptions(update.CallbackQuery.From.ID, "Помогу в НГУ")
-		loader.Logger.Print("[", update.CallbackQuery.From.ID, "] "+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Результат: "+text)
+		loader.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Результат: "+text)
 
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
 
@@ -357,7 +357,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		button = q.button
 	}
 
-	loader.Logger.Print("[", update.Message.From.ID, "] "+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
+	loader.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
 
@@ -398,7 +398,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather))
 	case "start":
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			"Привет!\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, чтобы было проще возвращаться к меню.")
+			"Привет!\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, чтобы было проще возвращаться к меню.\nЕщё есть полезные советы /help и /faq.")
 
 		msg.ReplyMarkup = MainMenu()
 
