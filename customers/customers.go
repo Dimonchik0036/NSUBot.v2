@@ -79,17 +79,17 @@ func UpdateUserLabels() error {
 func PrintUserLabels(id int) (userLabels string) {
 	g, ok := AllLabels[id]
 	if !ok || (g.MyGroup == "" && len(g.Group) == 0) {
-		return "Метки отсутствуют."
+		return "Метки отсутствуют"
 	}
 
-	userLabels = "Список меток:"
+	userLabels = "Список меток"
 
 	if g.MyGroup != "" {
-		userLabels = "Моя группа " + g.MyGroup + ".\n"
+		userLabels = "Моя группа " + g.MyGroup + "\n"
 	}
 
 	for l, g := range g.Group {
-		userLabels += "У группы " + g + "  метка \"" + l + "\".\n"
+		userLabels += "У группы " + g + "  метка \"" + l + "\"\n"
 	}
 
 	return
@@ -98,14 +98,14 @@ func PrintUserLabels(id int) (userLabels string) {
 func DeleteUserLabels(id int) string {
 	g, ok := AllLabels[id]
 	if !ok || g.Group == nil || len(g.Group) == 0 {
-		return "Список меток пуст."
+		return "Список меток пуст"
 	}
 
 	for i := range g.Group {
 		delete(g.Group, i)
 	}
 
-	return "Были очищены все метки."
+	return "Были очищены все метки"
 }
 
 func DecomposeQuery(words string) (command string, arguments string) {
@@ -128,10 +128,10 @@ func DecomposeQuery(words string) (command string, arguments string) {
 }
 
 // AddGroupNumber Привязывает к пользователю номер группы.
-func AddGroupNumber(schedule map[string][7]string, id int, command string) (bool, string) {
+func AddGroupNumber(schedule map[string][7]string, id int, command string) (int, string) {
 	group, labelGroup := DecomposeQuery(command)
 	if group == "" {
-		return false, "Вы не ввели номер группы, попробуте ещё раз:"
+		return 0, "Вы не ввели номер группы, попробуте ещё раз:"
 	}
 
 	if labelGroup == "" {
@@ -139,7 +139,7 @@ func AddGroupNumber(schedule map[string][7]string, id int, command string) (bool
 	}
 
 	if (len(group) > 16) || (len(labelGroup) > MaxCountSymbol) {
-		return false, "Слишком много символов, повторите попытку:"
+		return 0, "Слишком много символов, повторите попытку:"
 	}
 
 	_, ok := schedule[group]
@@ -147,7 +147,7 @@ func AddGroupNumber(schedule map[string][7]string, id int, command string) (bool
 		group += ".1"
 		_, ok = schedule[group]
 		if !ok {
-			return false, "Введён некорректный номер группы, попробуйте повторить попытку:"
+			return 0, "Введён некорректный номер группы, попробуйте повторить попытку:"
 		}
 	}
 
@@ -162,12 +162,12 @@ func AddGroupNumber(schedule map[string][7]string, id int, command string) (bool
 		}
 
 		if len(v.Group) > MaxCountLabel+1 {
-			return false, "Предел"
+			return 2, "Предел"
 		}
 
 		_, okay = v.Group[labelGroup]
 		if !okay && (len(v.Group) == MaxCountLabel) {
-			return false, "Предел"
+			return 2, "Предел"
 		}
 
 		if len(v.Group) == MaxCountLabel {
@@ -180,12 +180,12 @@ func AddGroupNumber(schedule map[string][7]string, id int, command string) (bool
 	AllLabels[id] = v
 
 	if labelGroup == MyGroupLabel {
-		return true, "Группа '" + group + "' успешно назначена стандартной."
+		return 1, "Группа '" + group + "' успешно назначена стандартной"
 	} else {
 		if okay {
-			return true, "Изменена группа у метки \"" + labelGroup + "\" на " + group + "."
+			return 1, "Изменена группа у метки \"" + labelGroup + "\" на " + group
 		} else {
-			return true, "Добавлена новая метка '" + labelGroup + "' для группы " + group + "."
+			return 1, "Добавлена новая метка '" + labelGroup + "' для группы " + group
 		}
 	}
 }

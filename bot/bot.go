@@ -50,15 +50,6 @@ func messageLog(update tgbotapi.Update) {
 				update.Message.From.UserName+")")
 
 	}
-	if update.Message.IsCommand() {
-		logAll.Printf("[%d] %s: %s",
-			update.Message.From.ID,
-			update.Message.From.FirstName+" "+
-				update.Message.From.LastName+" (@"+
-				update.Message.From.UserName+")",
-			update.Message.Text)
-	}
-
 }
 
 func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
@@ -98,11 +89,8 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	processingUser(bot, update)
 	messageLog(update)
 
-	m, err := menu.MessageProcessing(bot, update)
-	if err == nil {
-		bot.Send(m)
-
-	} else {
+	err := menu.MessageProcessing(bot, update)
+	if err != nil {
 		logAll.Print(err)
 	}
 
@@ -117,7 +105,6 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 
 	if update.Message.IsCommand() {
 		switch update.Message.Command() {
-
 		case "post":
 			a, err := subscriptions.GetGroupPost(update.Message.CommandArguments())
 			if err == nil {
@@ -197,7 +184,7 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		message += "/users <_ | all> - Выводит статистику по пользователям.\n" +
 			"/groups <_ | all> - Выводит статистику по каналам.\n" +
 			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды.\n" +
-			"/sendmelog <data | users | labels> - Присылает файл с логами.\n" +
+			"/sendmelog <data | users | labels | sub> - Присылает файл с логами.\n" +
 			"/sendall <текст> - Делает рассылку текста. \n" +
 			"/reset - Завершает текущую сессию бота. \n" +
 			"/defaultgroup <id группы> - Изменяет отслеживаемую группу."
@@ -225,7 +212,7 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			for i := range users {
 				_, err := bot.Send(tgbotapi.NewMessage(int64(i), update.Message.CommandArguments()))
 				if err != nil {
-					logAll.Print("Что-то пошло не так при рассылке ["+string(i)+"]", err)
+					logAll.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
 				}
 			}
 		}
@@ -236,7 +223,11 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		logAll.Print("Обновлена строка температуры на: " + weather.CurrentWeather)
 		message += "Готово!\n" + "'" + weather.CurrentWeather + "'"
 	case "sendmelog":
-		if update.Message.CommandArguments() == "data" || update.Message.CommandArguments() == "users" || update.Message.CommandArguments() == "labels" {
+		if update.Message.CommandArguments() == "data" ||
+			update.Message.CommandArguments() == "users" ||
+			update.Message.CommandArguments() == "labels" ||
+			update.Message.CommandArguments() == "sub" {
+
 			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Отправляю..."))
 			if err != nil {
 				logAll.Print("Что-то пошло не так при sendmelog", err)
@@ -251,23 +242,27 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 				name = loader.UserFileName
 			case "labels":
 				name = customers.LabelsFile
+			case "sub":
+				name = "users_subscriptions.txt"
 			}
+
 			_, err = bot.Send(tgbotapi.NewDocumentUpload(loader.MyId, name))
 			if err != nil {
-				_, err = bot.Send(tgbotapi.NewMessage(loader.MyId, "Не удалось отправить файл."))
+				_, err = bot.Send(tgbotapi.NewMessage(loader.MyId, "Не удалось отправить файл"))
 				if err != nil {
-					logAll.Print("С отправкой файла всё плохо.")
+					logAll.Print("С отправкой файла всё плохо")
 				}
 
 				logAll.Print("Ошибка отправки файла лога:", err)
 			}
 		} else {
-			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Попробуй ещё раз ввести аргументы правильно:\n"+
-				"'data' - Файл полного лога.\n"+
-				"'users' - файл с пользователями.\n"+
-				"'labels' - файл с метками."))
+			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Попробуй ещё раз ввести аргументы правильно\n"+
+				"'data' - Файл полного лога\n"+
+				"'users' - файл с пользователями\n"+
+				"'labels' - файл с метками\n"+
+				"'sub' - файл с подписками"))
 			if err != nil {
-				logAll.Print("Что-то пошло не так", err)
+				logAll.Print("Что-то пошло не так ", err)
 			}
 		}
 

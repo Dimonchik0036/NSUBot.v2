@@ -200,7 +200,7 @@ func getGroupSchedule(name string, group string) error {
 	var message [7]string
 	for number := 0; number < 7; number++ {
 		message[number] = title + "\n" +
-			"1 П.  9:00: " + string(tableDay[0][number]) + "\n" +
+			"1 П. 09:00: " + string(tableDay[0][number]) + "\n" +
 			"2 П. 10:50: " + string(tableDay[1][number]) + "\n" +
 			"3 П. 12:40: " + string(tableDay[2][number]) + "\n" +
 			"4 П. 14:30: " + string(tableDay[3][number]) + "\n" +
@@ -361,13 +361,13 @@ func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bo
 
 	var textDay [7]string
 
-	textDay[0] = "Понедельник."
-	textDay[1] = "Вторник."
-	textDay[2] = "Среда."
-	textDay[3] = "Четверг."
-	textDay[4] = "Пятница."
-	textDay[5] = "Суббота."
-	textDay[6] = "Воскресенье."
+	textDay[0] = "Понедельник"
+	textDay[1] = "Вторник"
+	textDay[2] = "Среда"
+	textDay[3] = "Четверг"
+	textDay[4] = "Пятница"
+	textDay[5] = "Суббота"
+	textDay[6] = "Воскресенье"
 
 	var number int
 
@@ -389,4 +389,21 @@ func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bo
 	}
 
 	return textDay[(number+offset)%7] + "\n" + v[(number+offset)%7], true
+}
+
+func GetWeek(group string) (days [7]string) {
+	v, ok := TableSchedule[group]
+	if !ok {
+		return
+	}
+
+	days[0] = "Понедельник.\n" + v[0]
+	days[1] = "Вторник.\n" + v[1]
+	days[2] = "Среда.\n" + v[2]
+	days[3] = "Четверг.\n" + v[3]
+	days[4] = "Пятница.\n" + v[4]
+	days[5] = "Суббота.\n" + v[5]
+	days[6] = "Воскресенье.\n" + v[6]
+
+	return
 }

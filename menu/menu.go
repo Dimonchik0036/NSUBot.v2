@@ -7,7 +7,6 @@ import (
 	"TelegramBot/schedule"
 	"TelegramBot/subscriptions"
 	"TelegramBot/weather"
-	"errors"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"os"
@@ -15,14 +14,12 @@ import (
 )
 
 //var queue = make(map[int]queueType)
-var queue = make(map[int]string)
+var queue = make(map[int]queueType)
 
 type queueType struct {
-	run        bool
-	showButton bool
-	command    string
-	oldMenu    string
-	id         int
+	command  string
+	argument string
+	button   string
 }
 
 const BackButtonText = "« Назад"
@@ -37,19 +34,17 @@ const tag_options = "menu_options"
 const tag_clear_labels = "clear_labels"
 const tag_show_labels = "show_labels"
 const tag_labels = "menu_labels"
-const tag_usergroup = "tag_usergroup"
+const set_new_group = "setgroup"
 const tag_delete = "delete"
 const tag_schedule_day = "tag_schedule_day"
 const tag_day = "tag_day"
-const schedule_today = "schedule_today"
-const schedule_tomorrow = "schedule_tomorrow"
-const different_today = "different_today"
-const different_tomorrow = "different_tomorrow"
+const different_day = "different_day"
 const today = "today"
 const tomorrow = "tomorrow"
 const faq = "faq"
 const feedback = "feedback"
 const tag_keyboard = "keyboard"
+const set_different_group = "set_different_group"
 
 var FlagToRunner = true
 
@@ -74,22 +69,13 @@ func MessageProcessing(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		loader.Logger.Print("ChannelPost")
 	}
 
-	return errors.New("Сообщение не прошло обработку.")
+	return
 }
 
 func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error) {
-	loader.Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID: ", update.CallbackQuery.From.ID, " CallbackQuery: ", update.CallbackQuery.Data, " ID: ", update.CallbackQuery.From.ID, " MessageID: ", update.CallbackQuery.Message.MessageID)
-
-	/*data := update.CallbackQuery.Data
-	q, ok := queue[update.CallbackQuery.From.ID]
-
-	if ok && data != q.oldMenu && data != tag_main && q.command != "" && q.id == update.CallbackQuery.Message.MessageID {
-		data = q.command
-	}*/
-
-	//queue[update.CallbackQuery.From.ID] = queueType{false, false, "", "", 0}
-
 	command, argument := customers.DecomposeQuery(update.CallbackQuery.Data)
+
+	loader.Logger.Print("[", update.CallbackQuery.From.ID, "] "+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
 
 	switch command {
 	case tag_keyboard:
@@ -104,7 +90,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 		bot.Send(msg)
 	case feedback:
-		queue[update.CallbackQuery.From.ID] = feedback
+		queue[update.CallbackQuery.From.ID] = queueType{feedback, "", ""}
 
 		bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Наберите свой отзыв:"))
 	case faq:
@@ -116,7 +102,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		bot.Send(msg)
 	case subscriptions.NsuHelp:
 		text := subscriptions.ChangeSubscriptions(update.CallbackQuery.From.ID, "Помогу в НГУ")
-		loader.Logger.Print("["+update.CallbackQuery.From.UserName+"]"+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+" ID: ", update.CallbackQuery.From.ID, " Разультат: "+text)
+		loader.Logger.Print("[", update.CallbackQuery.From.ID, "] "+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Результат: "+text)
 
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
 
@@ -161,10 +147,10 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 	case tag_schedule_day:
 		g := ShowLabelsButton(tag_day+" "+argument+" ", update.CallbackQuery.From.ID)
 		if len(g.InlineKeyboard) == 0 {
-			g = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить метку", tag_usergroup)))
+			g = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить метку", set_different_group+" "+tag_schedule_day+" "+argument)))
 		}
 
-		markup := UniteMarkup(g, tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Ввести другой номер", tag_schedule_day+" "+argument))),
+		markup := UniteMarkup(g, tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Ввести другой номер", different_day+" "+argument))),
 			RowButtonBack(tag_schedule+" "+argument, true))
 
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Выберите группу")
@@ -174,14 +160,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		return
 	case tag_day:
 		day, group := customers.DecomposeQuery(argument)
-		var offset int
-
-		switch day {
-		case today:
-			offset = 0
-		case tomorrow:
-			offset = 1
-		}
+		offset := Day(day)
 
 		text, _ := schedule.PrintSchedule(group, offset, update.CallbackQuery.From.ID, false)
 
@@ -191,13 +170,37 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-	case tag_week:
-		for i := 0; i < 7; i++ {
+	case different_day:
+		queue[update.CallbackQuery.From.ID] = queueType{tag_day, argument + " ", ""}
 
-			bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, ""))
+		bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Введите номер группы"))
+	case tag_week:
+		g, ok := customers.AllLabels[update.CallbackQuery.From.ID]
+		if !ok || g.MyGroup == "" {
+			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Вы не указали свою группу")
+			m := UniteMarkup(tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить метку", set_different_group+" "+tag_schedule))),
+				RowButtonBack(tag_schedule, true))
+
+			msg.ReplyMarkup = &m
+
+			bot.Send(msg)
+			return
 		}
 
-		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Пожалуйста")
+		var msg tgbotapi.MessageConfig
+
+		days := schedule.GetWeek(g.MyGroup)
+		if len(days) > 0 {
+			for i := 0; i < 6; i++ {
+				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, days[i]))
+			}
+
+			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Готово")
+		} else {
+			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Произошла ошибка, сообщите об этом мне /feedback, если ошибка появляется")
+			bot.Send(tgbotapi.NewMessage(loader.MyId, "Проблема с расписанием на неделю у группы "+g.MyGroup))
+		}
 
 		m := UniteMarkup(WeekMenu(), RowButtonBack(tag_schedule, true))
 		msg.ReplyMarkup = &m
@@ -239,8 +242,24 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-	case tag_usergroup:
-		bot.Send(NewUserGroup(update))
+	case set_new_group:
+		text, markup := AddNewGroup(argument, tag_labels, update.CallbackQuery.From.ID, "")
+		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
+
+		if len(markup.InlineKeyboard) > 0 {
+			msg.ReplyMarkup = markup
+		}
+
+		bot.Send(msg)
+	case set_different_group:
+		text, markup := AddNewGroup("", argument, update.CallbackQuery.From.ID, "Введите номер своей группы")
+		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
+
+		if len(markup.InlineKeyboard) > 0 {
+			msg.ReplyMarkup = markup
+		}
+
+		bot.Send(msg)
 	default:
 		msg := tgbotapi.NewEditMessageText(
 			update.CallbackQuery.Message.Chat.ID,
@@ -251,6 +270,46 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
+	}
+
+	return
+}
+
+func Day(day string) int {
+	switch day {
+	case today:
+		return 0
+	case tomorrow:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func AddNewGroup(argument string, back string, id int, myText string) (text string, markup tgbotapi.InlineKeyboardMarkup) {
+	if argument == "" {
+		if myText == "" {
+			text = "Если вы хотите добавить свою группу в избранное, то введите её номер.\n\nЕсли вы хотите добавить/изменить метку, то введите номер группы и название метки через пробел:"
+		} else {
+			text = myText
+		}
+		queue[id] = queueType{set_new_group, "", back}
+		return
+	}
+
+	var check int
+
+	check, text = customers.AddGroupNumber(schedule.TableSchedule, id, argument)
+
+	switch check {
+	case 0:
+		queue[id] = queueType{set_new_group, "", back}
+	case 1:
+		markup = RowButtonBack(back, true)
+		return
+	case 2:
+		text = "Вы достигли предела меток"
+		markup = RowButtonBack(back, true)
 	}
 
 	return
@@ -283,37 +342,24 @@ func StartDeleteLabel(argument string, id int) (text string, markup tgbotapi.Inl
 	return
 }
 
-func NewUserGroup(update tgbotapi.Update) (answer tgbotapi.Chattable) {
-	answer = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Если вы хотите добавить свою группу в избранное, то введите её номер.\n\nЕсли вы хотите добавить/изменить метку, то введите номер группы и название метки через пробел:")
-	return
-}
-
 func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error) {
-	loader.Logger.Print("["+update.Message.From.UserName+"]"+update.Message.From.FirstName+" "+update.Message.From.LastName+" ID: ", update.Message.From.ID, " MessageText: ", update.Message.Text, " ID: ", update.Message.From.ID)
-
-	/*command := update.Message.Command()
-	arguments := update.Message.CommandArguments()
-
-	q, ok := queue[update.Message.From.ID]
-	queue[update.Message.From.ID] = queueType{false, q.showButton, "", "", 0}
-
-	if !update.Message.IsCommand() && ok {
-		command = q.command
-		arguments = update.Message.Text
-	}*/
-
 	var command string
 	var argument string
+	var button string
 
 	if update.Message.IsCommand() {
 		command = update.Message.Command()
 		argument = update.Message.CommandArguments()
 	} else {
-		command = queue[update.Message.From.ID]
-		argument = update.Message.Text
+		q := queue[update.Message.From.ID]
+		command = q.command
+		argument = q.argument + update.Message.Text
+		button = q.button
 	}
 
-	queue[update.Message.From.ID] = ""
+	loader.Logger.Print("[", update.Message.From.ID, "] "+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
+
+	queue[update.Message.From.ID] = queueType{"", "", ""}
 
 	switch command {
 	case feedback:
@@ -328,12 +374,12 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 			return
 		}
 
-		queue[update.Message.From.ID] = feedback
+		queue[update.Message.From.ID] = queueType{feedback, "", ""}
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Наберите свой отзыв:"))
 
 		return
 	case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Мой телеграм: @Dimonchik0036\nМой GitHub: github.com/dimonchik0036"))
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
 	case "reset":
 		if update.Message.From.ID == loader.MyId {
 			bot.Send(tgbotapi.NewMessage(loader.MyId, "Выключаюсь."))
@@ -381,74 +427,34 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		msg.ReplyMarkup = MainMenu()
 
 		bot.Send(msg)
-	case today, "t", "td", tomorrow, "tm", "tom":
-		var day int
-		switch command {
-		case today, "t", "td":
-			day = 0
-		case tomorrow, "tm", "tom":
-			day = 1
-		}
+	case tag_day:
+		day, group := customers.DecomposeQuery(argument)
+		offset := Day(day)
 
-		text, _ := schedule.PrintSchedule(argument, day, update.Message.From.ID, false)
+		text, ok := schedule.PrintSchedule(group, offset, update.Message.From.ID, true)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
 
-		/*if ok {
-			queue[update.Message.From.ID] = queueType{false, false, "", "", 0}
-
-			/*if q.showButton {
-				markup, err := BackDayButton(day)
-				if err == nil {
-					msg.ReplyMarkup = markup
-				}
-			}
+		if !ok {
+			queue[update.Message.From.ID] = queueType{tag_day, day + " ", ""}
 		} else {
-			queue[update.Message.From.ID] = queueType{true, q.showButton, command, "", 0}
-
-			if !q.run {
-				msg.Text = "Введите номер группы:"
-			}
-		}*/
+			msg.ReplyMarkup = RowButtonBack(tag_schedule_day+" "+day, true)
+		}
 
 		bot.Send(msg)
-	case "setgroup":
-		ok, text := customers.AddGroupNumber(schedule.TableSchedule, update.Message.From.ID, argument)
-		if ok {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-			loader.Logger.Print("["+update.Message.From.UserName+"]"+update.Message.From.FirstName+" "+update.Message.From.LastName+" ID: ", update.Message.From.ID, " Результат: "+text)
-
-			/*if q.showButton {
-				msg.ReplyMarkup = UniteMarkup(LabelsMenu(), RowButtonBack(tag_schedule, true))
-			}
-
-			queue[update.Message.From.ID] = queueType{false, false, "", "", 0}*/
-
-			bot.Send(msg)
-		} else {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-
-			if text != "Предел" {
-				//queue[update.Message.From.ID] = queueType{true, q.showButton, command, "", 0}
-			} else {
-				//queue[update.Message.From.ID] = queueType{false, false, "", "", 0}
-
-				msg.Text = "Вы достигли предела меток. Теперь вы можете только очистить список меток, воспользовавшись командой /clearlabels, " +
-					"или изменять группы, привязанные к меткам, но не можете добавлять новые."
-
-				/*if q.showButton {
-					msg.ReplyMarkup = UniteMarkup(LabelsMenu(), RowButtonBack(tag_schedule, true))
-					msg.Text = "Вы достигли предела меток. Теперь вы можете только очистить список меток " +
-						"или изменить группы, привязанные к меткам, но не можете добавлять новые."
-
-				}*/
-			}
-
-			/*if !q.run {
-				text = "Если вы хотите добавить свою группу в избранное, то введите её номер.\n\nЕсли вы хотите добавить/изменить метку, то введите номер группы и название метки через пробел:"
-			}*/
-
-			bot.Send(msg)
+	case set_new_group:
+		if button == "" {
+			button = tag_labels
 		}
+
+		text, markup := AddNewGroup(argument, button, update.Message.From.ID, "")
+
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+
+		if len(markup.InlineKeyboard) > 0 {
+			msg.ReplyMarkup = markup
+		}
+
+		bot.Send(msg)
 	case "labels":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(update.Message.From.ID)))
 	case "clearlabels":
@@ -460,12 +466,16 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		if err == nil {
 			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, joke))
 		}
+
 	case "subjoke":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, jokes.ChangeJokeSubscriptions(update.Message.From.ID)))
+		return
 	case "nsuhelp":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(update.Message.From.ID, "Помогу в НГУ")))
+		return
 	case "faq":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, FaqText()))
+		return
 	}
 
 	return
@@ -526,7 +536,7 @@ func LabelsMenu() (markup tgbotapi.InlineKeyboardMarkup) {
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Показать все метки", tag_show_labels)),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Добавить/изменить метку", tag_usergroup)),
+			tgbotapi.NewInlineKeyboardButtonData("Добавить/изменить метку", set_new_group)),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Удалить метку", tag_delete)),
 		tgbotapi.NewInlineKeyboardRow(
@@ -565,7 +575,7 @@ func ShowLabelsButton(prefix string, id int) (markup tgbotapi.InlineKeyboardMark
 	}
 
 	if v.MyGroup != "" {
-		markup.InlineKeyboard = append(markup.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Моё", prefix+v.MyGroup)))
+		markup.InlineKeyboard = append(markup.InlineKeyboard, tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Моя группа", prefix+v.MyGroup)))
 	}
 
 	return
@@ -626,5 +636,5 @@ func FaqText() string {
 		"Q: Как часто обновляется расписание?\n" +
 		"A: Сразу же после изменений в официальном расписании.\n\n" +
 
-		"Если у Вас остались ещё какие-то вопросы, то их можно задать мне @dimonchik0036."
+		"Если у Вас остались ещё какие-то вопросы, то со мной можно связаться через контакты /author."
 }
