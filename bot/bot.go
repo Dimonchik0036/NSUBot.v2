@@ -2,7 +2,6 @@ package main
 
 import (
 	"TelegramBot/customers"
-	"TelegramBot/jokes"
 	"TelegramBot/loader"
 	"TelegramBot/menu"
 	"TelegramBot/schedule"
@@ -140,21 +139,6 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	}
 }
 
-func SendJokesAll(bot *tgbotapi.BotAPI) error {
-	for {
-		joke, err := jokes.GetJokes()
-		if err == nil {
-			for i, v := range jokes.JokeBase {
-				if v != 0 {
-					bot.Send(tgbotapi.NewMessage(int64(i), joke))
-				}
-			}
-		}
-
-		time.Sleep(time.Minute * 30)
-	}
-}
-
 // newChat Возвращает строку с новым каналом
 func newChat(chat *tgbotapi.Chat) string {
 	message := "Ник: @" + chat.UserName +
@@ -180,7 +164,7 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	switch update.Message.Command() {
 	case "defaultgroup":
 		message = subscriptions.ChangeDefaultGroup(update.Message.CommandArguments())
-	case "help":
+	case "admin":
 		message += "/users <_ | all> - Выводит статистику по пользователям.\n" +
 			"/groups <_ | all> - Выводит статистику по каналам.\n" +
 			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды.\n" +
@@ -190,8 +174,16 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			"/defaultgroup <id группы> - Изменяет отслеживаемую группу."
 	case "users":
 		if update.Message.CommandArguments() == "all" {
+
+			var count int
 			for _, v := range users {
-				message += loader.WriteUsers(v) + "\n\n"
+				count++
+				message += loader.WriteUsers(v)+"\n\n"
+
+				if (count % 10) == 0 {
+					bot.Send(tgbotapi.NewMessage(loader.MyId, message))
+					message = ""
+				}
 			}
 		}
 
@@ -267,18 +259,8 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		}
 
 		return
-
 	default:
 		return
-	}
-
-	for len(message) > 4500 {
-		_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, message[:4500]))
-		if err != nil {
-			logAll.Print("Ошибка отправки сообщения - комманды:", err)
-		}
-
-		message = message[4500:]
 	}
 
 	_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, message))
@@ -392,8 +374,6 @@ func main() {
 		logAll.Print(err)
 	}
 
-	go SendJokesAll(bot)
-
 	go func() {
 		for {
 			time.Sleep(7 * time.Minute)
@@ -433,8 +413,8 @@ func main() {
 					for i, b := range subscriptions.UsersNsuHelp {
 						if b != 0 {
 							for _, v := range a {
-								if len(v[1]) > 4500 {
-									v[1] = v[1][:4500] + "\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
+								if len([]byte(v[1])) > 4500 {
+									v[1] = string([]byte(v[1][:4500])) + "\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
 								}
 								bot.Send(tgbotapi.NewMessage(int64(i), v[0]+"\n\n"+v[1]))
 							}

@@ -4,7 +4,6 @@ import (
 	"golang.org/x/net/html"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"regexp"
 )
 
@@ -48,28 +47,5 @@ func GetJokes() (string, error) {
 		text = text[:index[0]] + "\n" + text[index[1]:]
 	}
 
-	jokeFile, err := os.OpenFile("jokes.txt", os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModePerm)
-	if err == nil {
-		jokeFile.WriteString(">>>>>>\n" + text + "\n\n")
-		jokeFile.Close()
-	}
-
 	return text, nil
-}
-
-func ChangeJokeSubscriptions(id int) string {
-	v, ok := JokeBase[id]
-	if !ok {
-		JokeBase[id] = 1
-		return "Вы были подписаны на рассылку."
-	} else {
-		if v != 0 {
-			JokeBase[id] = 0
-			return "Вы были отписаны от рассылки."
-		} else {
-			JokeBase[id] = 1
-			return "Вы были подписаны на рассылку."
-		}
-	}
-
 }

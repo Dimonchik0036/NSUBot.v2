@@ -102,18 +102,17 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		bot.Send(msg)
 	case subscriptions.NsuHelp:
 		text := subscriptions.ChangeSubscriptions(update.CallbackQuery.From.ID, "Помогу в НГУ")
-		loader.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Результат: "+text)
 
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
 
-		m := UniteMarkup(SubscriptionsMenu(), RowButtonBack(tag_main, false))
+		m := RowButtonBack(tag_subscriptions, true)
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
 	case subscriptions.NsuFit:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Ещё в разработке")
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Скоро")
 
-		m := UniteMarkup(SubscriptionsMenu(), RowButtonBack(tag_main, false))
+		m := RowButtonBack(tag_subscriptions, true)
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
@@ -466,10 +465,6 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		if err == nil {
 			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, joke))
 		}
-
-	case "subjoke":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, jokes.ChangeJokeSubscriptions(update.Message.From.ID)))
-		return
 	case "nsuhelp":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(update.Message.From.ID, "Помогу в НГУ")))
 		return

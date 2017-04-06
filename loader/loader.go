@@ -2,7 +2,6 @@ package loader
 
 import (
 	"TelegramBot/customers"
-	"TelegramBot/jokes"
 	"TelegramBot/subscriptions"
 	"bytes"
 	"encoding/json"
@@ -57,8 +56,6 @@ func LoadUsersSubscriptions() error {
 		switch s.Group {
 		case "nsuhelp":
 			subscriptions.UsersNsuHelp[s.Id] = s.Selection
-		case "jokes":
-			jokes.JokeBase[s.Id] = s.Selection
 		}
 	}
 
@@ -81,21 +78,6 @@ func UpdateUserSubscriptions() error {
 		s.Id = i
 		s.Selection = v
 		s.Group = "nsuhelp"
-
-		b, err := json.Marshal(s)
-		if err != nil {
-			return err
-		}
-
-		b = append(b, '\n')
-
-		userFile.Write(b)
-	}
-
-	for i, v := range jokes.JokeBase {
-		s.Id = i
-		s.Selection = v
-		s.Group = "jokes"
 
 		b, err := json.Marshal(s)
 		if err != nil {
