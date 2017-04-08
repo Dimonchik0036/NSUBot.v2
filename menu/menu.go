@@ -6,6 +6,7 @@ import (
 	"TelegramBot/loader"
 	"TelegramBot/schedule"
 	"TelegramBot/subscriptions"
+	"TelegramBot/types"
 	"TelegramBot/weather"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -13,7 +14,6 @@ import (
 	"time"
 )
 
-//var queue = make(map[int]queueType)
 var queue = make(map[int]queueType)
 
 type queueType struct {
@@ -22,29 +22,34 @@ type queueType struct {
 	button   string
 }
 
-const BackButtonText = "« Назад"
-const MainButtonText = "« В начало"
+// Кнопки возвращения
+const (
+	BackButtonText = "« Назад"
+	MainButtonText = "« В начало"
+)
 
-const tag_main = "menu_main"
-const tag_week = "menu_week"
-const tag_schedule = "menu_schedule"
-const tag_weather = "menu_weather"
-const tag_subscriptions = "menu_subscriptions"
-const tag_options = "menu_options"
-const tag_clear_labels = "clear_labels"
-const tag_show_labels = "show_labels"
-const tag_labels = "menu_labels"
-const set_new_group = "setgroup"
-const tag_delete = "delete"
-const tag_schedule_day = "tag_schedule_day"
-const tag_day = "tag_day"
-const different_day = "different_day"
-const today = "today"
-const tomorrow = "tomorrow"
-const faq = "faq"
-const feedback = "feedback"
-const tag_keyboard = "keyboard"
-const set_different_group = "set_different_group"
+const (
+	tag_main            = "menu_main"
+	tag_week            = "menu_week"
+	tag_schedule        = "menu_schedule"
+	tag_weather         = "menu_weather"
+	tag_subscriptions   = "menu_subscriptions"
+	tag_options         = "menu_options"
+	tag_clear_labels    = "clear_labels"
+	tag_show_labels     = "show_labels"
+	tag_labels          = "menu_labels"
+	set_new_group       = "setgroup"
+	tag_delete          = "delete"
+	tag_schedule_day    = "tag_schedule_day"
+	tag_day             = "tag_day"
+	tag_keyboard        = "keyboard"
+	set_different_group = "set_different_group"
+	different_day       = "different_day"
+	today               = "today"
+	tomorrow            = "tomorrow"
+	faq                 = "faq"
+	feedback            = "feedback"
+)
 
 var FlagToRunner = true
 
@@ -58,15 +63,15 @@ func MessageProcessing(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	}
 
 	if update.InlineQuery != nil {
-		loader.Logger.Print("InlineQuery")
+		types.Logger.Print("InlineQuery")
 	}
 
 	if update.ChosenInlineResult != nil {
-		loader.Logger.Print("ChosenInlineResult")
+		types.Logger.Print("ChosenInlineResult")
 	}
 
 	if update.ChannelPost != nil {
-		loader.Logger.Print("ChannelPost")
+		types.Logger.Print("ChannelPost")
 	}
 
 	return
@@ -75,7 +80,7 @@ func MessageProcessing(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error) {
 	command, argument := customers.DecomposeQuery(update.CallbackQuery.Data)
 
-	loader.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
+	types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
 
 	switch command {
 	case tag_keyboard:
@@ -174,7 +179,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 		bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Введите номер группы"))
 	case tag_week:
-		g, ok := customers.AllLabels[update.CallbackQuery.From.ID]
+		g, ok := types.AllLabels[update.CallbackQuery.From.ID]
 		if !ok || g.MyGroup == "" {
 			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Вы не указали свою группу")
 			m := UniteMarkup(tgbotapi.NewInlineKeyboardMarkup(
@@ -198,7 +203,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Готово")
 		} else {
 			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Произошла ошибка, сообщите об этом мне /feedback, если ошибка появляется")
-			bot.Send(tgbotapi.NewMessage(loader.MyId, "Проблема с расписанием на неделю у группы "+g.MyGroup))
+			bot.Send(tgbotapi.NewMessage(types.MyId, "Проблема с расписанием на неделю у группы "+g.MyGroup))
 		}
 
 		m := UniteMarkup(WeekMenu(), RowButtonBack(tag_schedule, true))
@@ -298,7 +303,7 @@ func AddNewGroup(argument string, back string, id int, myText string) (text stri
 
 	var check int
 
-	check, text = customers.AddGroupNumber(schedule.TableSchedule, id, argument)
+	check, text = customers.AddGroupNumber(id, argument)
 
 	switch check {
 	case 0:
@@ -318,14 +323,14 @@ func StartDeleteLabel(argument string, id int) (text string, markup tgbotapi.Inl
 	text = "Нажмите на метки, которые хотите удалить"
 
 	if argument != "" {
-		v := customers.AllLabels[id]
+		v := types.AllLabels[id]
 
 		if argument == v.MyGroup {
 			v.MyGroup = ""
 
-			customers.AllLabels[id] = v
+			types.AllLabels[id] = v
 		} else {
-			delete(customers.AllLabels[id].Group, argument)
+			delete(types.AllLabels[id].Group, argument)
 		}
 	}
 
@@ -356,7 +361,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		button = q.button
 	}
 
-	loader.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
+	types.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
 
@@ -368,7 +373,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 			msg.ReplyMarkup = RowButtonBack(tag_options, true)
 			bot.Send(msg)
 
-			bot.Send(tgbotapi.NewMessage(loader.MyId, argument+"\n\nОтзыв от: ["+fmt.Sprint(update.Message.From.ID)+"]\n@"+update.Message.From.UserName+"\n"+update.Message.From.LastName+" "+update.Message.From.FirstName))
+			bot.Send(tgbotapi.NewMessage(types.MyId, argument+"\n\nОтзыв от: ["+fmt.Sprint(update.Message.From.ID)+"]\n@"+update.Message.From.UserName+"\n"+update.Message.From.LastName+" "+update.Message.From.FirstName))
 
 			return
 		}
@@ -380,8 +385,8 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
 	case "reset":
-		if update.Message.From.ID == loader.MyId {
-			bot.Send(tgbotapi.NewMessage(loader.MyId, "Выключаюсь."))
+		if update.Message.From.ID == types.MyId {
+			bot.Send(tgbotapi.NewMessage(types.MyId, "Выключаюсь."))
 
 			go func() {
 				FlagToRunner = false
@@ -459,7 +464,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	case "clearlabels":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(update.Message.From.ID)))
 	case "delete":
-		delete(customers.AllLabels[update.Message.From.ID].Group, argument)
+		delete(types.AllLabels[update.Message.From.ID].Group, argument)
 	case "joke", "j":
 		joke, err := jokes.GetJokes()
 		if err == nil {
@@ -558,7 +563,7 @@ func WeekMenu() (markup tgbotapi.InlineKeyboardMarkup) {
 }
 
 func ShowLabelsButton(prefix string, id int) (markup tgbotapi.InlineKeyboardMarkup) {
-	v, ok := customers.AllLabels[id]
+	v, ok := types.AllLabels[id]
 	if !ok {
 		return
 	}
@@ -601,7 +606,6 @@ func GetHelp(arg string) (text string) {
 	case "secret":
 		text = "ACHTUNG! Использование этих команд запрещено на территории РФ. Автор ответственности не несёт, используйте на свой страх и риск. \n\n" +
 			"/joke - Показывает бородатый анекдот.\n" +
-			"/subjoke - Подписывает на рассылку бородатых анекдотов. Именно их можно получить, используя /joke\n" +
 			"/post <ID группы в VK> - Показывает закреплённый и 4 обычных поста из этой группы VK.\n\n" +
 			"/creator - Используешь » ? » PROFIT!"
 	default:

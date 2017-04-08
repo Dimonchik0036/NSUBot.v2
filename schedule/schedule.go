@@ -1,7 +1,7 @@
 package schedule
 
 import (
-	"TelegramBot/customers"
+	"TelegramBot/types"
 	"errors"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
@@ -11,7 +11,9 @@ import (
 	"time"
 )
 
-var TableSchedule = make(map[string][7]string)
+// Хранят дату последнего обновления
+var GkDate string
+var LkDate string
 
 // searchFacultyName Вытаскивает из текста название факультета.
 func searchFacultyName(text string) (string, error) {
@@ -209,13 +211,13 @@ func getGroupSchedule(name string, group string) error {
 			"7 П. 20:00: " + string(tableDay[6][number]) + "\n"
 	}
 
-	TableSchedule[groupTitle] = message
+	types.AllSchedule[groupTitle] = message
 
 	return nil
 }
 
 // GetAllSchedule Заполняет расписание.
-func GetAllSchedule(group string, gkDate *string, lkDate *string) (info string, err error) {
+func GetAllSchedule(group string) (info string, err error) {
 	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/")
 	if err != nil {
 		return "", errors.New("Расписание временно недоступно.")
@@ -262,23 +264,23 @@ func GetAllSchedule(group string, gkDate *string, lkDate *string) (info string, 
 		err = getGroupSchedule(v[1:], group)
 		if err != nil {
 			info += group + " "
-			TableSchedule[v[1:]] = mess
+			types.AllSchedule[v[1:]] = mess
 		}
 	}
 
 	if group == "GK" {
 		info = "GK " + date + " " + info
-		*gkDate = date
+		GkDate = date
 	} else {
 		info = "LK " + date + " " + info
-		*lkDate = date
+		LkDate = date
 	}
 
 	return info, nil
 }
 
 // ParseSchedule Проверяет расписание на изменение.
-func ParseSchedule(group string, gkDate *string, lkDate *string) (info string, err error) {
+func ParseSchedule(group string) (info string, err error) {
 	res, err := http.Get("http://old.nsu.ru/education/schedule/Html_" + group + "/Groups/")
 	if err != nil {
 		return "", err
@@ -313,18 +315,18 @@ func ParseSchedule(group string, gkDate *string, lkDate *string) (info string, e
 	date := data.FindString(text)
 
 	if date != "" {
-		if (group == "GK") && (*gkDate != date) {
-			mess, err := GetAllSchedule("GK", gkDate, lkDate)
+		if (group == "GK") && (GkDate != date) {
+			mess, err := GetAllSchedule("GK")
 			if err == nil {
 				info = "GK " + date + " " + mess
-				*gkDate = date
+				GkDate = date
 			}
 		} else {
-			if (group == "LK") && (*lkDate != date) {
-				mess, err := GetAllSchedule("LK", gkDate, lkDate)
+			if (group == "LK") && (LkDate != date) {
+				mess, err := GetAllSchedule("LK")
 				if err == nil {
 					info = "LK " + date + " " + mess
-					*lkDate = date
+					LkDate = date
 				}
 			}
 		}
@@ -335,25 +337,25 @@ func ParseSchedule(group string, gkDate *string, lkDate *string) (info string, e
 
 // PrintSchedule Возвращает расписание.
 func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bool) {
-	if len(group) > customers.MaxCountSymbol {
+	if len(group) > types.MaxCountSymbol {
 		return "Слишком много символов, повторите попытку", false
 	}
 
 	if !onlyGroup {
 		if group == "" {
-			group = customers.AllLabels[id].MyGroup
+			group = types.AllLabels[id].MyGroup
 		} else {
-			defaultGroup, ok := customers.AllLabels[id].Group[group]
+			defaultGroup, ok := types.AllLabels[id].Group[group]
 			if ok {
 				group = defaultGroup
 			}
 		}
 	}
 
-	v, ok := TableSchedule[group]
+	v, ok := types.AllSchedule[group]
 	if !ok {
 		group += ".1"
-		v, ok = TableSchedule[group]
+		v, ok = types.AllSchedule[group]
 		if !ok {
 			return "Группа с таким номером не найдена, попробуйте скорректировать запрос", false
 		}
@@ -392,7 +394,7 @@ func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bo
 }
 
 func GetWeek(group string) (days [7]string) {
-	v, ok := TableSchedule[group]
+	v, ok := types.AllSchedule[group]
 	if !ok {
 		return
 	}

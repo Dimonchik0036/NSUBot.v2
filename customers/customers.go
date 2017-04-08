@@ -4,43 +4,22 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"TelegramBot/types"
 )
 
-const MaxCountLabel = 20
-const LabelsFile = "labels.txt"
-const MyGroupLabel = "Моя"
-const MaxCountSymbol = 64
-
-type UserGroup struct {
-	Group   map[string]string
-	MyGroup string
-}
-
-type UserGroupLabels struct {
-	Id     int    `json:"ID"`
-	Labels string `json:"Labels"`
-}
-
-type UserLabels struct {
-	Label string `json:"Label"`
-	Group string `json:"Group"`
-}
-
-var AllLabels = make(map[int]UserGroup)
-
 func UpdateUserLabels() error {
-	userFile, err := os.OpenFile(LabelsFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	userFile, err := os.OpenFile(types.LabelsFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
-	for i, v := range AllLabels {
-		var user UserGroupLabels
+	for i, v := range types.AllLabels {
+		var user types.UserGroupLabels
 		var text string
 
 		user.Id = i
 
-		var lab UserLabels
-		lab.Label = MyGroupLabel
+		var lab types.UserLabels
+		lab.Label = types.MyGroupLabel
 		lab.Group = v.MyGroup
 
 		res, err := json.Marshal(&lab)
@@ -76,7 +55,7 @@ func UpdateUserLabels() error {
 }
 
 func PrintUserLabels(id int) (userLabels string) {
-	g, ok := AllLabels[id]
+	g, ok := types.AllLabels[id]
 	if !ok || (g.MyGroup == "" && len(g.Group) == 0) {
 		return "Метки отсутствуют"
 	}
@@ -95,7 +74,7 @@ func PrintUserLabels(id int) (userLabels string) {
 }
 
 func DeleteUserLabels(id int) string {
-	g, ok := AllLabels[id]
+	g, ok := types.AllLabels[id]
 	if !ok || g.Group == nil || len(g.Group) == 0 {
 		return "Список меток пуст"
 	}
@@ -127,58 +106,58 @@ func DecomposeQuery(words string) (command string, arguments string) {
 }
 
 // AddGroupNumber Привязывает к пользователю номер группы.
-func AddGroupNumber(schedule map[string][7]string, id int, command string) (int, string) {
+func AddGroupNumber(id int, command string) (int, string) {
 	group, labelGroup := DecomposeQuery(command)
 	if group == "" {
 		return 0, "Вы не ввели номер группы, попробуте ещё раз:"
 	}
 
 	if labelGroup == "" {
-		labelGroup = MyGroupLabel
+		labelGroup = types.MyGroupLabel
 	}
 
-	if (len(group) > 16) || (len(labelGroup) > MaxCountSymbol) {
+	if (len(group) > 16) || (len(labelGroup) > types.MaxCountSymbol) {
 		return 0, "Слишком много символов, повторите попытку:"
 	}
 
-	_, ok := schedule[group]
+	_, ok := types.AllSchedule[group]
 	if !ok {
 		group += ".1"
-		_, ok = schedule[group]
+		_, ok = types.AllSchedule[group]
 		if !ok {
 			return 0, "Введён некорректный номер группы, попробуйте повторить попытку:"
 		}
 	}
 
-	v := AllLabels[id]
+	v := types.AllLabels[id]
 	var okay bool
 
-	if labelGroup == MyGroupLabel {
+	if labelGroup == types.MyGroupLabel {
 		v.MyGroup = group
 	} else {
 		if v.Group == nil {
 			v.Group = make(map[string]string)
 		}
 
-		if len(v.Group) > MaxCountLabel+1 {
+		if len(v.Group) > types.MaxCountLabel+1 {
 			return 2, "Предел"
 		}
 
 		_, okay = v.Group[labelGroup]
-		if !okay && (len(v.Group) == MaxCountLabel) {
+		if !okay && (len(v.Group) == types.MaxCountLabel) {
 			return 2, "Предел"
 		}
 
-		if len(v.Group) == MaxCountLabel {
+		if len(v.Group) == types.MaxCountLabel {
 
 		}
 
 		v.Group[labelGroup] = group
 	}
 
-	AllLabels[id] = v
+	types.AllLabels[id] = v
 
-	if labelGroup == MyGroupLabel {
+	if labelGroup == types.MyGroupLabel {
 		return 1, "Группа '" + group + "' успешно назначена стандартной"
 	} else {
 		if okay {

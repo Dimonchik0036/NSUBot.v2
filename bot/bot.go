@@ -6,6 +6,7 @@ import (
 	"TelegramBot/menu"
 	"TelegramBot/schedule"
 	"TelegramBot/subscriptions"
+	"TelegramBot/types"
 	"TelegramBot/weather"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -14,26 +15,9 @@ import (
 	"time"
 )
 
-// Хранят основную информацию
-var chats = make(map[int64]string)
-var users = make(map[int]string)
-
 // Хранят количество пользователей
 var chatsCount int
 var usersCount int
-
-// Хранят дату последнего обновления
-var gkDate string
-var lkDate string
-
-// Рабочие переменные
-var timeToStart string
-
-// Логгеры
-var logAll *log.Logger
-
-// Личные данные
-const botToken = "371494091:AAGndTNOEJpsCO9_CxDuPpa9R025Lxms6UI"
 
 func messageLog(update tgbotapi.Update) {
 	if update.Message == nil {
@@ -41,7 +25,7 @@ func messageLog(update tgbotapi.Update) {
 	}
 
 	if (update.Message.Chat.IsGroup() || update.Message.Chat.IsChannel() || update.Message.Chat.IsSuperGroup()) && update.Message.IsCommand() {
-		logAll.Printf("[%d] %s",
+		types.Logger.Printf("[%d] %s",
 			update.Message.Chat.ID, "'"+
 				update.Message.Chat.Title+"' "+
 				update.Message.From.FirstName+" "+
@@ -57,28 +41,28 @@ func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 	}
 
 	if update.Message.Chat.Type != "private" {
-		_, ok := chats[update.Message.Chat.ID]
+		_, ok := types.AllChatsInfo[update.Message.Chat.ID]
 		if !ok {
 			n := newChat(update.Message.Chat)
-			chats[update.Message.Chat.ID] = n
+			types.AllChatsInfo[update.Message.Chat.ID] = n
 
-			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Новая чат-сессия!\n"+n))
+			_, err := bot.Send(tgbotapi.NewMessage(types.MyId, "Новая чат-сессия!\n"+n))
 			if err != nil {
-				logAll.Print("newChat:", err)
+				types.Logger.Print("newChat:", err)
 			}
 		}
 	}
 
-	m, ok, err := loader.NewUserInfo(users, update)
+	m, ok, err := loader.NewUserInfo(update)
 	if err != nil {
 		return err
 	}
 
 	if ok {
-		bot.Send(tgbotapi.NewMessage(loader.MyId, "Новый пользователь!\n"+m))
+		bot.Send(tgbotapi.NewMessage(types.MyId, "Новый пользователь!\n"+m))
 		usersCount++
 	} else {
-		loader.ReloadUserDate(users, update.Message.From.ID)
+		loader.ReloadUserDate(update.Message.From.ID)
 	}
 
 	return nil
@@ -90,7 +74,7 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 
 	err := menu.MessageProcessing(bot, update)
 	if err != nil {
-		logAll.Print(err)
+		types.Logger.Print(err)
 	}
 
 	sendMembers(bot, update)
@@ -133,7 +117,7 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		if !nilMsg {
 			_, err := bot.Send(msg)
 			if err != nil {
-				logAll.Print("Невозможно отправить: ", err)
+				types.Logger.Print("Невозможно отправить: ", err)
 			}
 		}
 	}
@@ -155,7 +139,7 @@ func newChat(chat *tgbotapi.Chat) string {
 
 // sendMembers Отправляет статистику по пользователям
 func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
-	if update.Message == nil || update.Message.From.ID != loader.MyId {
+	if update.Message == nil || update.Message.From.ID != types.MyId {
 		return
 	}
 
@@ -176,12 +160,12 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		if update.Message.CommandArguments() == "all" {
 
 			var count int
-			for _, v := range users {
+			for _, v := range types.AllUsersInfo {
 				count++
 				message += loader.WriteUsers(v) + "\n\n"
 
 				if (count % 10) == 0 {
-					bot.Send(tgbotapi.NewMessage(loader.MyId, message))
+					bot.Send(tgbotapi.NewMessage(types.MyId, message))
 					message = ""
 				}
 			}
@@ -190,7 +174,7 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		message += "Количество пользователей: " + strconv.Itoa(usersCount)
 	case "groups":
 		if update.Message.CommandArguments() == "all" {
-			for _, v := range chats {
+			for _, v := range types.AllChatsInfo {
 				message += v + "\n\n"
 			}
 
@@ -199,12 +183,12 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		message += "Количество чатов: " + strconv.Itoa(chatsCount)
 	case "sendall":
 		if update.Message.CommandArguments() != "" {
-			logAll.Print("Рассылаю всем: '" + update.Message.CommandArguments() + "'")
+			types.Logger.Print("Рассылаю всем: '" + update.Message.CommandArguments() + "'")
 
-			for i := range users {
+			for i := range types.AllUsersInfo {
 				_, err := bot.Send(tgbotapi.NewMessage(int64(i), update.Message.CommandArguments()))
 				if err != nil {
-					logAll.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
+					types.Logger.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
 				}
 			}
 		}
@@ -212,7 +196,7 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		return
 	case "setmessage":
 		weather.CurrentWeather = update.Message.CommandArguments()
-		logAll.Print("Обновлена строка температуры на: " + weather.CurrentWeather)
+		types.Logger.Print("Обновлена строка температуры на: " + weather.CurrentWeather)
 		message += "Готово!\n" + "'" + weather.CurrentWeather + "'"
 	case "sendmelog":
 		if update.Message.CommandArguments() == "data" ||
@@ -220,41 +204,41 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			update.Message.CommandArguments() == "labels" ||
 			update.Message.CommandArguments() == "sub" {
 
-			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Отправляю..."))
+			_, err := bot.Send(tgbotapi.NewMessage(types.MyId, "Отправляю..."))
 			if err != nil {
-				logAll.Print("Что-то пошло не так при sendmelog", err)
+				types.Logger.Print("Что-то пошло не так при sendmelog", err)
 			}
 
 			var name string
 
 			switch update.Message.CommandArguments() {
 			case "data":
-				name = timeToStart
+				name = types.LoggerFilename
 			case "users":
-				name = loader.UserFileName
+				name = types.UsersFilename
 			case "labels":
-				name = customers.LabelsFile
+				name = types.LabelsFilename
 			case "sub":
-				name = "users_subscriptions.txt"
+				name = types.SubscriptionsFilename
 			}
 
-			_, err = bot.Send(tgbotapi.NewDocumentUpload(loader.MyId, name))
+			_, err = bot.Send(tgbotapi.NewDocumentUpload(types.MyId, name))
 			if err != nil {
-				_, err = bot.Send(tgbotapi.NewMessage(loader.MyId, "Не удалось отправить файл"))
+				_, err = bot.Send(tgbotapi.NewMessage(types.MyId, "Не удалось отправить файл"))
 				if err != nil {
-					logAll.Print("С отправкой файла всё плохо")
+					types.Logger.Print("С отправкой файла всё плохо")
 				}
 
-				logAll.Print("Ошибка отправки файла лога:", err)
+				types.Logger.Print("Ошибка отправки файла лога:", err)
 			}
 		} else {
-			_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, "Попробуй ещё раз ввести аргументы правильно\n"+
+			_, err := bot.Send(tgbotapi.NewMessage(types.MyId, "Попробуй ещё раз ввести аргументы правильно\n"+
 				"'data' - Файл полного лога\n"+
 				"'users' - файл с пользователями\n"+
 				"'labels' - файл с метками\n"+
 				"'sub' - файл с подписками"))
 			if err != nil {
-				logAll.Print("Что-то пошло не так ", err)
+				types.Logger.Print("Что-то пошло не так ", err)
 			}
 		}
 
@@ -263,59 +247,58 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 		return
 	}
 
-	_, err := bot.Send(tgbotapi.NewMessage(loader.MyId, message))
+	_, err := bot.Send(tgbotapi.NewMessage(types.MyId, message))
 	if err != nil {
-		logAll.Print("Ошибка отправки сообщения - комманды:", err)
+		types.Logger.Print("Ошибка отправки сообщения - комманды:", err)
 	}
 }
 
 func main() {
-	var err error
-	timeToStart, err = loader.LoadLoggers(&logAll)
+	err := loader.LoadLoggers()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	bot, err := tgbotapi.NewBotAPI(botToken)
+	bot, err := tgbotapi.NewBotAPI(types.BotToken)
 	if err != nil {
-		logAll.Fatal("Бот в отпуске: ", err)
+		types.Logger.Fatal("Бот в отпуске: ", err)
 	}
 
 	bot.Debug = false
 
-	info, err := schedule.GetAllSchedule("GK", &gkDate, &lkDate)
+	info, err := schedule.GetAllSchedule("GK")
 	if err != nil {
-		bot.Send(tgbotapi.NewMessage(loader.MyId, "Всё плохо с GK"))
-		logAll.Fatal("GK")
+		bot.Send(tgbotapi.NewMessage(types.MyId, "Всё плохо с GK"))
+		types.Logger.Fatal("GK")
 	} else {
-		logAll.Print(info)
+		types.Logger.Print(info)
 	}
 
-	info, err = schedule.GetAllSchedule("LK", &gkDate, &lkDate)
+	info, err = schedule.GetAllSchedule("LK")
 	if err != nil {
-		bot.Send(tgbotapi.NewMessage(loader.MyId, "Всё плохо с LK"))
-		logAll.Fatal("LK")
+		bot.Send(tgbotapi.NewMessage(types.MyId, "Всё плохо с LK"))
+		types.Logger.Fatal("LK")
 	} else {
-		logAll.Print(info)
+		types.Logger.Print(info)
 	}
 
 	go func() {
 		for {
-			answer, err := schedule.ParseSchedule("GK", &gkDate, &lkDate)
+			answer, err := schedule.ParseSchedule("GK")
 			if err != nil {
-				logAll.Print(err)
+				types.Logger.Print(err)
 			} else {
 				if answer != "" {
-					logAll.Print(answer)
+					types.Logger.Print(answer)
 				}
 			}
 
-			answer, err = schedule.ParseSchedule("LK", &gkDate, &lkDate)
+			answer, err = schedule.ParseSchedule("LK")
 			if err != nil {
-				logAll.Print(err)
+				types.Logger.Print(err)
 			} else {
 				if answer != "" {
-					logAll.Print(answer)
+					types.Logger.Print(answer)
 				}
 			}
 
@@ -327,18 +310,18 @@ func main() {
 		for {
 			err := weather.SearchWeather()
 			if err != nil {
-				logAll.Print(err)
+				types.Logger.Print(err)
 			}
 
 			time.Sleep(time.Minute)
 		}
 	}()
 
-	logAll.Printf("Бот %s запущен.", bot.Self.UserName)
+	types.Logger.Printf("Бот %s запущен.", bot.Self.UserName)
 
-	_, err = bot.Send(tgbotapi.NewMessage(loader.MyId, "Я перезагрузился."))
+	_, err = bot.Send(tgbotapi.NewMessage(types.MyId, "Я перезагрузился."))
 	if err != nil {
-		logAll.Print("Не смог отправить весточку повелителю.", err)
+		types.Logger.Print("Не смог отправить весточку повелителю.", err)
 	}
 
 	u := tgbotapi.NewUpdate(0)
@@ -346,32 +329,32 @@ func main() {
 
 	updates, err := bot.GetUpdatesChan(u)
 	if err != nil {
-		logAll.Fatal(err)
+		types.Logger.Fatal(err)
 	}
 
-	usersCount, err = loader.LoadUsers(users)
+	usersCount, err = loader.LoadUsers()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = loader.LoadChats(chats)
+	err = loader.LoadChats()
 	if err != nil {
-		logAll.Print(err)
+		types.Logger.Print(err)
 	}
 
 	err = loader.LoadUserGroup()
 	if err != nil {
-		logAll.Print(err)
+		types.Logger.Print(err)
 	}
 
 	err = loader.LoadSchedule()
 	if err != nil {
-		logAll.Print(err)
+		types.Logger.Print(err)
 	}
 
 	err = loader.LoadUsersSubscriptions()
 	if err != nil {
-		logAll.Print(err)
+		types.Logger.Print(err)
 	}
 
 	go func() {
@@ -382,19 +365,19 @@ func main() {
 				return
 			}
 
-			err := loader.UpdateUserInfo(users)
+			err := loader.UpdateUserInfo()
 			if err != nil {
-				logAll.Print(err)
+				types.Logger.Print(err)
 			}
 
 			err = customers.UpdateUserLabels()
 			if err != nil {
-				logAll.Print(err)
+				types.Logger.Print(err)
 			}
 
 			err = loader.UpdateUserSubscriptions()
 			if err != nil {
-				logAll.Print(err)
+				types.Logger.Print(err)
 			}
 		}
 	}()
@@ -404,13 +387,13 @@ func main() {
 			time.Sleep(5 * time.Second)
 		}
 
-		logAll.Print("Удачно загрузилась парсилка.")
+		types.Logger.Print("Удачно загрузилась парсилка.")
 
 		for {
 			a := subscriptions.GetNewPosts()
 			if len(a) != 0 {
 				if a[0][0] != "" {
-					for i, b := range subscriptions.UsersNsuHelp {
+					for i, b := range types.UsersNsuHelp {
 						if b != 0 {
 							for _, v := range a {
 								if len([]byte(v[1])) > 4500 {

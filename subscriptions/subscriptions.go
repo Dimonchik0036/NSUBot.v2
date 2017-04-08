@@ -5,18 +5,15 @@ import (
 	"bufio"
 	"errors"
 	"golang.org/x/net/html"
+	"TelegramBot/types"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 )
 
 const CountPost = 5
-const FileUsersSubscriptions = "users_subscriptions.txt"
-const Yes = 1
-const No = 0
 
 var LatestPosts [CountPost][2]string
-var UsersNsuHelp = make(map[int]int)
 
 var ParserGroup = "nsuhelp"
 
@@ -187,16 +184,16 @@ func GetGroupPost(groupName string) ([CountPost][2]string, error) {
 }
 
 func ChangeSubscriptions(id int, name string) string {
-	v, ok := UsersNsuHelp[id]
+	v, ok := types.UsersNsuHelp[id]
 	if !ok {
-		UsersNsuHelp[id] = Yes
+		types.UsersNsuHelp[id] = types.Yes
 		return "Вы были подписаны на рассылку " + name + "."
 	} else {
 		if v != 0 {
-			UsersNsuHelp[id] = No
+			types.UsersNsuHelp[id] = types.No
 			return "Вы были отписаны от рассылки " + name + "."
 		} else {
-			UsersNsuHelp[id] = Yes
+			types.UsersNsuHelp[id] = types.Yes
 			return "Вы были подписаны на рассылку " + name + "."
 		}
 	}

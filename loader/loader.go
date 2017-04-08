@@ -1,8 +1,7 @@
 package loader
 
 import (
-	"TelegramBot/customers"
-	"TelegramBot/subscriptions"
+	"TelegramBot/types"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -14,30 +13,8 @@ import (
 	"time"
 )
 
-var Logger *log.Logger
-
-type UserInfo struct {
-	TimeCreate     string `json:"TimeCreate"`
-	TimeLastAction string `json:"TimeLastAction"`
-	FirstName      string `json:"FirstName"`
-	LastName       string `json:"LastName"`
-	UserName       string `json:"UserName"`
-	ID             int    `json:"ID"`
-}
-
-type Subscriptions struct {
-	Id        int    `json:"ID"`
-	Group     string `json:"Group"`
-	Selection int    `json:"Selection"`
-}
-
-var UserFileName string = "users_info.txt"
-var TimeFormat string = "02.01.06 15:04:10"
-
-const MyId = 227605930
-
 func LoadUsersSubscriptions() error {
-	userFile, err := os.OpenFile(subscriptions.FileUsersSubscriptions, os.O_RDWR, os.ModePerm)
+	userFile, err := os.OpenFile(types.SubscriptionsFilename, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return nil
 	}
@@ -45,7 +22,7 @@ func LoadUsersSubscriptions() error {
 	decUsers := json.NewDecoder(userFile)
 
 	for {
-		var s Subscriptions
+		var s types.Subscriptions
 
 		if err := decUsers.Decode(&s); err == io.EOF {
 			break
@@ -55,7 +32,7 @@ func LoadUsersSubscriptions() error {
 
 		switch s.Group {
 		case "nsuhelp":
-			subscriptions.UsersNsuHelp[s.Id] = s.Selection
+			types.UsersNsuHelp[s.Id] = s.Selection
 		}
 	}
 
@@ -68,13 +45,13 @@ func LoadUsersSubscriptions() error {
 }
 
 func UpdateUserSubscriptions() error {
-	userFile, err := os.OpenFile(subscriptions.FileUsersSubscriptions, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	userFile, err := os.OpenFile(types.SubscriptionsFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	var s Subscriptions
-	for i, v := range subscriptions.UsersNsuHelp {
+	var s types.Subscriptions
+	for i, v := range types.UsersNsuHelp {
 		s.Id = i
 		s.Selection = v
 		s.Group = "nsuhelp"
@@ -95,24 +72,20 @@ func UpdateUserSubscriptions() error {
 }
 
 // LoadLoggers Инициализирует логгеры.
-func LoadLoggers(logAll **log.Logger) (filenameLogAll string, err error) {
-	filenameLogAll = time.Now().Format("2006-01-02T15-04") + ".txt"
-
-	fileLoggerAll, err := os.OpenFile(filenameLogAll, os.O_CREATE|os.O_RDWR, os.ModePerm)
+func LoadLoggers() (err error) {
+	fileLogger, err := os.OpenFile(types.LoggerFilename, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
-		return "", errors.New("Не удалось открыть файл: " + filenameLogAll)
+		return errors.New("Не удалось открыть файл: " + types.LoggerFilename)
 	}
 
-	*logAll = log.New(fileLoggerAll, "", log.LstdFlags)
-	(*logAll).Println("Начинаю.")
-
-	Logger = *logAll
+	types.Logger = log.New(fileLogger, "", log.LstdFlags)
+	types.Logger.Println("Начинаю.")
 
 	return
 }
 
 func WriteUsers(mess string) string {
-	var u UserInfo
+	var u types.UserInfo
 
 	err := json.Unmarshal([]byte(mess), &u)
 	if err != nil {
@@ -124,15 +97,15 @@ func WriteUsers(mess string) string {
 
 // LoadUserGroup Загружает данные о запомненных группах.
 func LoadUserGroup() error {
-	userfile, err := os.OpenFile(customers.LabelsFile, os.O_RDWR, os.ModePerm)
+	userFile, err := os.OpenFile(types.LabelsFilename, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return nil
 	}
 
-	decUsers := json.NewDecoder(userfile)
+	decUsers := json.NewDecoder(userFile)
 
 	for {
-		var u customers.UserGroupLabels
+		var u types.UserGroupLabels
 
 		if err := decUsers.Decode(&u); err == io.EOF {
 			break
@@ -142,11 +115,11 @@ func LoadUserGroup() error {
 
 		decLabels := json.NewDecoder(bytes.NewReader([]byte(u.Labels)))
 
-		var g customers.UserGroup
+		var g types.UserGroup
 		g.Group = make(map[string]string)
 
 		for {
-			var l customers.UserLabels
+			var l types.UserLabels
 
 			if err := decLabels.Decode(&l); err == io.EOF {
 				break
@@ -154,17 +127,17 @@ func LoadUserGroup() error {
 				return err
 			}
 
-			if l.Label == customers.MyGroupLabel {
+			if l.Label == types.MyGroupLabel {
 				g.MyGroup = l.Group
 			} else {
 				g.Group[l.Label] = l.Group
 			}
 		}
 
-		customers.AllLabels[u.Id] = g
+		types.AllLabels[u.Id] = g
 	}
 
-	err = userfile.Close()
+	err = userFile.Close()
 	if err != nil {
 		return err
 	}
@@ -173,18 +146,18 @@ func LoadUserGroup() error {
 }
 
 // LoadUsers Загружает данные о пользователях.
-func LoadUsers(users map[int]string) (int, error) {
-	userfile, err := os.OpenFile(UserFileName, os.O_RDWR, os.ModePerm)
+func LoadUsers() (int, error) {
+	userFile, err := os.OpenFile(types.UsersFilename, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return 0, nil
 	}
 
 	var countUsers int
 
-	dec := json.NewDecoder(userfile)
+	dec := json.NewDecoder(userFile)
 
 	for {
-		var u UserInfo
+		var u types.UserInfo
 
 		if err := dec.Decode(&u); err == io.EOF {
 			break
@@ -197,11 +170,11 @@ func LoadUsers(users map[int]string) (int, error) {
 			continue
 		}
 
-		users[u.ID] = string(info)
+		types.AllUsersInfo[u.ID] = string(info)
 		countUsers++
 	}
 
-	err = userfile.Close()
+	err = userFile.Close()
 	if err != nil {
 		return countUsers, err
 	}
@@ -209,13 +182,13 @@ func LoadUsers(users map[int]string) (int, error) {
 	return countUsers, nil
 }
 
-func UpdateUserInfo(users map[int]string) error {
-	userFile, err := os.OpenFile(UserFileName, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+func UpdateUserInfo() error {
+	userFile, err := os.OpenFile(types.UsersFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	for _, v := range users {
+	for _, v := range types.AllUsersInfo {
 		userFile.WriteString(v + "\n")
 	}
 
@@ -225,19 +198,19 @@ func UpdateUserInfo(users map[int]string) error {
 }
 
 // NewUserInfo Возвращает строку с новым пользователем
-func NewUserInfo(users map[int]string, update tgbotapi.Update) (string, bool, error) {
+func NewUserInfo(update tgbotapi.Update) (string, bool, error) {
 	if update.Message == nil {
 		return "", false, errors.New("Не сообщение")
 	}
 
-	_, ok := users[update.Message.From.ID]
+	_, ok := types.AllUsersInfo[update.Message.From.ID]
 	if ok {
 		return "", false, nil
 	}
 
-	timeNow := time.Now().Format(TimeFormat)
+	timeNow := time.Now().Format(types.MyTimeFormat)
 
-	u := UserInfo{
+	u := types.UserInfo{
 		timeNow,
 		timeNow,
 		update.Message.From.FirstName,
@@ -250,9 +223,9 @@ func NewUserInfo(users map[int]string, update tgbotapi.Update) (string, bool, er
 		return "", true, err
 	}
 
-	users[u.ID] = string(info)
+	types.AllUsersInfo[u.ID] = string(info)
 
-	userFile, err := os.OpenFile(UserFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModePerm)
+	userFile, err := os.OpenFile(types.UsersFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return convertUserInfo(u), true, err
 	}
@@ -267,7 +240,7 @@ func NewUserInfo(users map[int]string, update tgbotapi.Update) (string, bool, er
 	return convertUserInfo(u), true, nil
 }
 
-func convertUserInfo(u UserInfo) string {
+func convertUserInfo(u types.UserInfo) string {
 	info := u.UserName
 
 	if info == "" {
@@ -279,33 +252,33 @@ func convertUserInfo(u UserInfo) string {
 	return "ID: " + fmt.Sprintf("%d", u.ID) + "\n" + info + "\nLast action: " + u.TimeLastAction
 }
 
-func ReloadUserDate(users map[int]string, id int) error {
-	info, ok := users[id]
+func ReloadUserDate(id int) error {
+	info, ok := types.AllUsersInfo[id]
 	if !ok {
 		return errors.New("Не удалось найти пользователя.")
 	}
 
-	var u UserInfo
+	var u types.UserInfo
 
 	err := json.Unmarshal([]byte(info), &u)
 	if err != nil {
 		return errors.New("Не удалось расшифровать данные.")
 	}
 
-	u.TimeLastAction = time.Now().Format(TimeFormat)
+	u.TimeLastAction = time.Now().Format(types.MyTimeFormat)
 
 	res, err := json.Marshal(u)
 	if err != nil {
 		return err
 	}
 
-	users[id] = string(res)
+	types.AllUsersInfo[id] = string(res)
 
 	return nil
 }
 
 // LoadChats Загружает данные о чатах.
-func LoadChats(chats map[int64]string) error {
+func LoadChats() error {
 	return nil
 }
 
