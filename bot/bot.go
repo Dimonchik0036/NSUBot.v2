@@ -19,6 +19,153 @@ import (
 var chatsCount int
 var usersCount int
 
+// loadAll - Загружает все необходимые данные и возвращает указатель на BotAPI
+func loadAll() (bot *tgbotapi.BotAPI) {
+	bot, err := tgbotapi.NewBotAPI(types.BotToken)
+	if err != nil {
+		types.Logger.Fatal("Бот в отпуске: ", err)
+	}
+
+	info, err := schedule.GetAllSchedule("GK")
+	if err != nil {
+		bot.Send(tgbotapi.NewMessage(types.MyId, "Всё плохо с GK"))
+		types.Logger.Fatal("GK")
+	} else {
+		types.Logger.Print(info)
+	}
+
+	info, err = schedule.GetAllSchedule("LK")
+	if err != nil {
+		bot.Send(tgbotapi.NewMessage(types.MyId, "Всё плохо с LK"))
+		types.Logger.Fatal("LK")
+	} else {
+		types.Logger.Print(info)
+	}
+
+	go func() {
+		for {
+			answer, err := schedule.ParseSchedule("GK")
+			if err != nil {
+				types.Logger.Print(err)
+			} else {
+				if answer != "" {
+					types.Logger.Print(answer)
+				}
+			}
+
+			answer, err = schedule.ParseSchedule("LK")
+			if err != nil {
+				types.Logger.Print(err)
+			} else {
+				if answer != "" {
+					types.Logger.Print(answer)
+				}
+			}
+
+			time.Sleep(5 * time.Minute)
+		}
+	}()
+
+	go func() {
+		for {
+			err := weather.SearchWeather()
+			if err != nil {
+				types.Logger.Print(err)
+			}
+
+			time.Sleep(time.Minute)
+		}
+	}()
+
+	usersCount, err = loader.LoadUsers()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = loader.LoadChats()
+	if err != nil {
+		types.Logger.Print(err)
+	}
+
+	err = loader.LoadUserGroup()
+	if err != nil {
+		types.Logger.Print(err)
+	}
+
+	err = loader.LoadSchedule()
+	if err != nil {
+		types.Logger.Print(err)
+	}
+
+	err = loader.LoadUsersSubscriptions()
+	if err != nil {
+		types.Logger.Print(err)
+	}
+
+	go func() {
+		for {
+			time.Sleep(7 * time.Minute)
+
+			if !menu.FlagToRunner {
+				return
+			}
+
+			err := loader.UpdateUserInfo()
+			if err != nil {
+				types.Logger.Print(err)
+			}
+
+			err = customers.UpdateUserLabels()
+			if err != nil {
+				types.Logger.Print(err)
+			}
+
+			err = loader.UpdateUserSubscriptions()
+			if err != nil {
+				types.Logger.Print(err)
+			}
+		}
+	}()
+
+	go func() {
+		for a := subscriptions.GetNewPosts(); len(a) == 0 || (a[0][1] == "" && a[1][0] == ""); a = subscriptions.GetNewPosts() {
+			time.Sleep(5 * time.Second)
+		}
+
+		types.Logger.Print("Удачно загрузилась парсилка.")
+
+		for {
+			a := subscriptions.GetNewPosts()
+			if len(a) != 0 {
+				if a[0][0] != "" {
+					for i, b := range types.UsersNsuHelp {
+						if b != 0 {
+							for _, v := range a {
+								if len([]byte(v[1])) > 4500 {
+									v[1] = string([]byte(v[1][:4500])) + "\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
+								}
+								bot.Send(tgbotapi.NewMessage(int64(i), v[0]+"\n\n"+v[1]))
+							}
+						}
+					}
+
+				}
+			}
+
+			time.Sleep(33 * time.Second)
+		}
+	}()
+
+	types.Logger.Printf("Бот %s запущен.", bot.Self.UserName)
+
+	_, err = bot.Send(tgbotapi.NewMessage(types.MyId, "Я перезагрузился."))
+	if err != nil {
+		types.Logger.Print("Не смог отправить весточку повелителю.", err)
+	}
+
+	return
+}
+
 func messageLog(update tgbotapi.Update) {
 	if update.Message == nil {
 		return
@@ -259,70 +406,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bot, err := tgbotapi.NewBotAPI(types.BotToken)
-	if err != nil {
-		types.Logger.Fatal("Бот в отпуске: ", err)
-	}
-
-	bot.Debug = false
-
-	info, err := schedule.GetAllSchedule("GK")
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(types.MyId, "Всё плохо с GK"))
-		types.Logger.Fatal("GK")
-	} else {
-		types.Logger.Print(info)
-	}
-
-	info, err = schedule.GetAllSchedule("LK")
-	if err != nil {
-		bot.Send(tgbotapi.NewMessage(types.MyId, "Всё плохо с LK"))
-		types.Logger.Fatal("LK")
-	} else {
-		types.Logger.Print(info)
-	}
-
-	go func() {
-		for {
-			answer, err := schedule.ParseSchedule("GK")
-			if err != nil {
-				types.Logger.Print(err)
-			} else {
-				if answer != "" {
-					types.Logger.Print(answer)
-				}
-			}
-
-			answer, err = schedule.ParseSchedule("LK")
-			if err != nil {
-				types.Logger.Print(err)
-			} else {
-				if answer != "" {
-					types.Logger.Print(answer)
-				}
-			}
-
-			time.Sleep(5 * time.Minute)
-		}
-	}()
-
-	go func() {
-		for {
-			err := weather.SearchWeather()
-			if err != nil {
-				types.Logger.Print(err)
-			}
-
-			time.Sleep(time.Minute)
-		}
-	}()
-
-	types.Logger.Printf("Бот %s запущен.", bot.Self.UserName)
-
-	_, err = bot.Send(tgbotapi.NewMessage(types.MyId, "Я перезагрузился."))
-	if err != nil {
-		types.Logger.Print("Не смог отправить весточку повелителю.", err)
-	}
+	bot := loadAll()
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -331,85 +415,6 @@ func main() {
 	if err != nil {
 		types.Logger.Fatal(err)
 	}
-
-	usersCount, err = loader.LoadUsers()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = loader.LoadChats()
-	if err != nil {
-		types.Logger.Print(err)
-	}
-
-	err = loader.LoadUserGroup()
-	if err != nil {
-		types.Logger.Print(err)
-	}
-
-	err = loader.LoadSchedule()
-	if err != nil {
-		types.Logger.Print(err)
-	}
-
-	err = loader.LoadUsersSubscriptions()
-	if err != nil {
-		types.Logger.Print(err)
-	}
-
-	go func() {
-		for {
-			time.Sleep(7 * time.Minute)
-
-			if !menu.FlagToRunner {
-				return
-			}
-
-			err := loader.UpdateUserInfo()
-			if err != nil {
-				types.Logger.Print(err)
-			}
-
-			err = customers.UpdateUserLabels()
-			if err != nil {
-				types.Logger.Print(err)
-			}
-
-			err = loader.UpdateUserSubscriptions()
-			if err != nil {
-				types.Logger.Print(err)
-			}
-		}
-	}()
-
-	go func() {
-		for a := subscriptions.GetNewPosts(); len(a) == 0 || (a[0][1] == "" && a[1][0] == ""); a = subscriptions.GetNewPosts() {
-			time.Sleep(5 * time.Second)
-		}
-
-		types.Logger.Print("Удачно загрузилась парсилка.")
-
-		for {
-			a := subscriptions.GetNewPosts()
-			if len(a) != 0 {
-				if a[0][0] != "" {
-					for i, b := range types.UsersNsuHelp {
-						if b != 0 {
-							for _, v := range a {
-								if len([]byte(v[1])) > 4500 {
-									v[1] = string([]byte(v[1][:4500])) + "\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
-								}
-								bot.Send(tgbotapi.NewMessage(int64(i), v[0]+"\n\n"+v[1]))
-							}
-						}
-					}
-
-				}
-			}
-
-			time.Sleep(33 * time.Second)
-		}
-	}()
 
 	for update := range updates {
 		go messages(bot, update)
