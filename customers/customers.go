@@ -33,7 +33,6 @@ func UpdateUserLabels() error {
 	if err != nil {
 		return err
 	}
-
 	for i, v := range AllLabels {
 		var user UserGroupLabels
 		var text string

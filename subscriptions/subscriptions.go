@@ -165,8 +165,11 @@ func GetNewPosts() (result [][2]string) {
 
 	if p[0][0] != LatestPosts[0][0] {
 		last := p[0]
-		last[0] += "\nЗакреплённая запись."
-		result = append(result, last)
+
+		if last[0] != "" {
+			last[0] += "\nЗакреплённая запись."
+			result = append(result, last)
+		}
 	}
 
 	LatestPosts = p

@@ -178,7 +178,7 @@ func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 			var count int
 			for _, v := range users {
 				count++
-				message += loader.WriteUsers(v)+"\n\n"
+				message += loader.WriteUsers(v) + "\n\n"
 
 				if (count % 10) == 0 {
 					bot.Send(tgbotapi.NewMessage(loader.MyId, message))
