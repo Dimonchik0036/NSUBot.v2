@@ -1,7 +1,7 @@
 package loader
 
 import (
-	"TelegramBot/types"
+	"TelegramBot/all_types"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -14,7 +14,7 @@ import (
 )
 
 func LoadUsersSubscriptions() error {
-	userFile, err := os.OpenFile(types.SubscriptionsFilename, os.O_RDWR, os.ModePerm)
+	userFile, err := os.OpenFile(all_types.SubscriptionsFilename, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return nil
 	}
@@ -22,7 +22,7 @@ func LoadUsersSubscriptions() error {
 	decUsers := json.NewDecoder(userFile)
 
 	for {
-		var s types.Subscriptions
+		var s all_types.Subscriptions
 
 		if err := decUsers.Decode(&s); err == io.EOF {
 			break
@@ -32,7 +32,7 @@ func LoadUsersSubscriptions() error {
 
 		switch s.Group {
 		case "nsuhelp":
-			types.UsersNsuHelp[s.Id] = s.Selection
+			all_types.UsersNsuHelp[s.Id] = s.Selection
 		}
 	}
 
@@ -45,13 +45,13 @@ func LoadUsersSubscriptions() error {
 }
 
 func UpdateUserSubscriptions() error {
-	userFile, err := os.OpenFile(types.SubscriptionsFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	userFile, err := os.OpenFile(all_types.SubscriptionsFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	var s types.Subscriptions
-	for i, v := range types.UsersNsuHelp {
+	var s all_types.Subscriptions
+	for i, v := range all_types.UsersNsuHelp {
 		s.Id = i
 		s.Selection = v
 		s.Group = "nsuhelp"
@@ -73,19 +73,19 @@ func UpdateUserSubscriptions() error {
 
 // LoadLoggers Инициализирует логгеры.
 func LoadLoggers() (err error) {
-	fileLogger, err := os.OpenFile(types.LoggerFilename, os.O_CREATE|os.O_RDWR, os.ModePerm)
+	fileLogger, err := os.OpenFile(all_types.LoggerFilename, os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
-		return errors.New("Не удалось открыть файл: " + types.LoggerFilename)
+		return errors.New("Не удалось открыть файл: " + all_types.LoggerFilename)
 	}
 
-	types.Logger = log.New(fileLogger, "", log.LstdFlags)
-	types.Logger.Println("Начинаю.")
+	all_types.Logger = log.New(fileLogger, "", log.LstdFlags)
+	all_types.Logger.Println("Начинаю.")
 
 	return
 }
 
 func WriteUsers(mess string) string {
-	var u types.UserInfo
+	var u all_types.UserInfo
 
 	err := json.Unmarshal([]byte(mess), &u)
 	if err != nil {
@@ -97,7 +97,7 @@ func WriteUsers(mess string) string {
 
 // LoadUserGroup Загружает данные о запомненных группах.
 func LoadUserGroup() error {
-	userFile, err := os.OpenFile(types.LabelsFilename, os.O_RDWR, os.ModePerm)
+	userFile, err := os.OpenFile(all_types.LabelsFilename, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return nil
 	}
@@ -105,7 +105,7 @@ func LoadUserGroup() error {
 	decUsers := json.NewDecoder(userFile)
 
 	for {
-		var u types.UserGroupLabels
+		var u all_types.UserGroupLabels
 
 		if err := decUsers.Decode(&u); err == io.EOF {
 			break
@@ -115,11 +115,11 @@ func LoadUserGroup() error {
 
 		decLabels := json.NewDecoder(bytes.NewReader([]byte(u.Labels)))
 
-		var g types.UserGroup
+		var g all_types.UserGroup
 		g.Group = make(map[string]string)
 
 		for {
-			var l types.UserLabels
+			var l all_types.UserLabels
 
 			if err := decLabels.Decode(&l); err == io.EOF {
 				break
@@ -127,14 +127,14 @@ func LoadUserGroup() error {
 				return err
 			}
 
-			if l.Label == types.MyGroupLabel {
+			if l.Label == all_types.MyGroupLabel {
 				g.MyGroup = l.Group
 			} else {
 				g.Group[l.Label] = l.Group
 			}
 		}
 
-		types.AllLabels[u.Id] = g
+		all_types.AllLabels[u.Id] = g
 	}
 
 	err = userFile.Close()
@@ -147,7 +147,7 @@ func LoadUserGroup() error {
 
 // LoadUsers Загружает данные о пользователях.
 func LoadUsers() (int, error) {
-	userFile, err := os.OpenFile(types.UsersFilename, os.O_RDWR, os.ModePerm)
+	userFile, err := os.OpenFile(all_types.UsersFilename, os.O_RDWR, os.ModePerm)
 	if err != nil {
 		return 0, nil
 	}
@@ -157,7 +157,7 @@ func LoadUsers() (int, error) {
 	dec := json.NewDecoder(userFile)
 
 	for {
-		var u types.UserInfo
+		var u all_types.UserInfo
 
 		if err := dec.Decode(&u); err == io.EOF {
 			break
@@ -170,7 +170,7 @@ func LoadUsers() (int, error) {
 			continue
 		}
 
-		types.AllUsersInfo[u.ID] = string(info)
+		all_types.AllUsersInfo[u.ID] = string(info)
 		countUsers++
 	}
 
@@ -183,12 +183,12 @@ func LoadUsers() (int, error) {
 }
 
 func UpdateUserInfo() error {
-	userFile, err := os.OpenFile(types.UsersFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
+	userFile, err := os.OpenFile(all_types.UsersFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	for _, v := range types.AllUsersInfo {
+	for _, v := range all_types.AllUsersInfo {
 		userFile.WriteString(v + "\n")
 	}
 
@@ -203,14 +203,14 @@ func NewUserInfo(update tgbotapi.Update) (string, bool, error) {
 		return "", false, errors.New("Не сообщение")
 	}
 
-	_, ok := types.AllUsersInfo[update.Message.From.ID]
+	_, ok := all_types.AllUsersInfo[update.Message.From.ID]
 	if ok {
 		return "", false, nil
 	}
 
-	timeNow := time.Now().Format(types.MyTimeFormat)
+	timeNow := time.Now().Format(all_types.MyTimeFormat)
 
-	u := types.UserInfo{
+	u := all_types.UserInfo{
 		timeNow,
 		timeNow,
 		update.Message.From.FirstName,
@@ -223,9 +223,9 @@ func NewUserInfo(update tgbotapi.Update) (string, bool, error) {
 		return "", true, err
 	}
 
-	types.AllUsersInfo[u.ID] = string(info)
+	all_types.AllUsersInfo[u.ID] = string(info)
 
-	userFile, err := os.OpenFile(types.UsersFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModePerm)
+	userFile, err := os.OpenFile(all_types.UsersFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModePerm)
 	if err != nil {
 		return convertUserInfo(u), true, err
 	}
@@ -240,7 +240,7 @@ func NewUserInfo(update tgbotapi.Update) (string, bool, error) {
 	return convertUserInfo(u), true, nil
 }
 
-func convertUserInfo(u types.UserInfo) string {
+func convertUserInfo(u all_types.UserInfo) string {
 	info := u.UserName
 
 	if info == "" {
@@ -253,26 +253,26 @@ func convertUserInfo(u types.UserInfo) string {
 }
 
 func ReloadUserDate(id int) error {
-	info, ok := types.AllUsersInfo[id]
+	info, ok := all_types.AllUsersInfo[id]
 	if !ok {
 		return errors.New("Не удалось найти пользователя.")
 	}
 
-	var u types.UserInfo
+	var u all_types.UserInfo
 
 	err := json.Unmarshal([]byte(info), &u)
 	if err != nil {
 		return errors.New("Не удалось расшифровать данные.")
 	}
 
-	u.TimeLastAction = time.Now().Format(types.MyTimeFormat)
+	u.TimeLastAction = time.Now().Format(all_types.MyTimeFormat)
 
 	res, err := json.Marshal(u)
 	if err != nil {
 		return err
 	}
 
-	types.AllUsersInfo[id] = string(res)
+	all_types.AllUsersInfo[id] = string(res)
 
 	return nil
 }

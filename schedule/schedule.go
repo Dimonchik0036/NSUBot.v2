@@ -1,7 +1,7 @@
 package schedule
 
 import (
-	"TelegramBot/types"
+	"TelegramBot/all_types"
 	"errors"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
@@ -211,7 +211,7 @@ func getGroupSchedule(name string, group string) error {
 			"7 П. 20:00: " + string(tableDay[6][number]) + "\n"
 	}
 
-	types.AllSchedule[groupTitle] = message
+	all_types.AllSchedule[groupTitle] = message
 
 	return nil
 }
@@ -264,7 +264,7 @@ func GetAllSchedule(group string) (info string, err error) {
 		err = getGroupSchedule(v[1:], group)
 		if err != nil {
 			info += group + " "
-			types.AllSchedule[v[1:]] = mess
+			all_types.AllSchedule[v[1:]] = mess
 		}
 	}
 
@@ -337,25 +337,25 @@ func ParseSchedule(group string) (info string, err error) {
 
 // PrintSchedule Возвращает расписание.
 func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bool) {
-	if len(group) > types.MaxCountSymbol {
+	if len(group) > all_types.MaxCountSymbol {
 		return "Слишком много символов, повторите попытку", false
 	}
 
 	if !onlyGroup {
 		if group == "" {
-			group = types.AllLabels[id].MyGroup
+			group = all_types.AllLabels[id].MyGroup
 		} else {
-			defaultGroup, ok := types.AllLabels[id].Group[group]
+			defaultGroup, ok := all_types.AllLabels[id].Group[group]
 			if ok {
 				group = defaultGroup
 			}
 		}
 	}
 
-	v, ok := types.AllSchedule[group]
+	v, ok := all_types.AllSchedule[group]
 	if !ok {
 		group += ".1"
-		v, ok = types.AllSchedule[group]
+		v, ok = all_types.AllSchedule[group]
 		if !ok {
 			return "Группа с таким номером не найдена, попробуйте скорректировать запрос", false
 		}
@@ -394,7 +394,7 @@ func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bo
 }
 
 func GetWeek(group string) (days [7]string) {
-	v, ok := types.AllSchedule[group]
+	v, ok := all_types.AllSchedule[group]
 	if !ok {
 		return
 	}

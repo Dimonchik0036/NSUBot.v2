@@ -16,16 +16,25 @@ const (
 	POST           = "post"
 )
 
+type Group struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	ScreenName string `json:"screen_name"`
+	IsClosed   int    `json:"is_closed"`
+	Type       string `json:"type"`
+}
+
 type Items struct {
 	ID          int           `json:"id"`            // ID записи
 	FromID      int           `json:"from_id"`       // ID автора
 	OwnerID     int           `json:"owner_id"`      // ID владельца стены
+	SignedId    int           `json:"signed_id"`     //идентификатор автора, если запись была опубликована от имени сообщества и подписана пользователем;
 	Date        int           `json:"date"`          // Дата размещения записи в unixtime
 	MarkedAsAds int           `json:"marked_as_ads"` // Содержит ли рекламу
 	PostType    string        `json:"post_type"`     // Тип записи (post, copy, reply, postpone, suggest)
 	Text        string        `json:"text"`          // Текст поста
 	Attachments []Attachments `json:"attachments"`
-	IsPinned int `json:"is_pinned"`
+	IsPinned    int           `json:"is_pinned"` //информация о том, что запись закреплена.
 }
 
 type Attachments struct {
@@ -52,16 +61,22 @@ type Photo struct {
 	AccessKey string `json:"access_key"` // ключ доступа фотографии
 }
 
+type Error struct {
+	ErrorCode int    `json:"error_code"`
+	ErrorMsg  string `json:"error_msg"`
+}
+
 type ApiVK struct {
 	Responses *Response `json:"response"`
+	Error     *Error    `json:"error"`
 }
 
 type Response struct {
-	Count int     `json:"count"` // Количество постов
-	Items []Items `json:"items"` // Записи со стены
+	Count int      `json:"count"` // Количество постов
+	Items *[]Items `json:"items"` // Записи со стены
 }
 
-func GetWallJson(domain string, offset int, count int, filter string) (response *Response, err error) {
+func GetWallJson(domain string, offset int, count int, filter string) (*Response, error) {
 	switch filter {
 	case "all", "owner", "others":
 		break
@@ -69,7 +84,7 @@ func GetWallJson(domain string, offset int, count int, filter string) (response 
 		return nil, errors.New("Неверное значение фильтра")
 	}
 
-	res, err := http.Get(API_METHOD_URL + "wall.get?domain=" + domain + "&offset=" + fmt.Sprintf("%d", offset) + "&count=" + fmt.Sprintf("%d", count) + "&filter=" + filter + "&v=" + VERSION)
+	res, err := http.Get(API_METHOD_URL + "wall.get?extended=1&domain=" + domain + "&offset=" + fmt.Sprintf("%d", offset) + "&count=" + fmt.Sprintf("%d", count) + "&filter=" + filter + "&v=" + VERSION)
 	if err != nil {
 		return nil, err
 	}
@@ -78,16 +93,26 @@ func GetWallJson(domain string, offset int, count int, filter string) (response 
 	if err != nil {
 		return nil, err
 	}
+
+	res.Body.Close()
+
 	fmt.Println(string(b))
+
 	var ApiVK ApiVK
 	err = json.Unmarshal(b, &ApiVK)
 	if err != nil {
 		log.Fatal()
 	}
 
-	response = ApiVK.Responses
+	if ApiVK.Error != nil {
+		return nil, errors.New(ApiVK.Error.ErrorMsg)
+	}
 
-	return
+	if ApiVK.Responses != nil {
+		return ApiVK.Responses, nil
+	}
+
+	return nil, errors.New("Not found")
 }
 
 func (item *Items) GetAllPhoto() (photos []string) {
@@ -98,6 +123,52 @@ func (item *Items) GetAllPhoto() (photos []string) {
 	}
 
 	return
+}
+
+func GetGroup(groupId int, groupIds string) (group Group, err error) {
+	res, err := http.Get(API_METHOD_URL + "groups.getById?group_id=" + fmt.Sprint(groupId) + "&group_ids=" + groupIds + "&v=" + VERSION)
+	if err != nil {
+		return
+	}
+
+	b, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return
+	}
+
+	type R struct {
+		Response []Group `json:"response"`
+		Error    *Error  `json:"error"`
+	}
+
+	var r R
+
+	res.Body.Close()
+
+	err = json.Unmarshal(b, &r)
+	if err != nil {
+		return
+	}
+
+	if r.Error != nil {
+		return group, errors.New(r.Error.ErrorMsg)
+	}
+
+	return r.Response[0], err
+}
+
+func (item *Items) GetOwnerInfo() (group *Group, err error) {
+	ownerId := item.OwnerID
+	if ownerId < 0 {
+		ownerId = -ownerId
+	}
+
+	g, err := GetGroup(ownerId, "")
+	if err != nil {
+		return nil, err
+	}
+
+	return &g, err
 }
 
 func (photo *Photo) GetMaxPhotoHref() string {

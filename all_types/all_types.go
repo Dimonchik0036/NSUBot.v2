@@ -1,4 +1,4 @@
-package types
+package all_types
 
 import (
 	"log"
@@ -10,7 +10,7 @@ var AllChatsInfo = make(map[int64]string)
 var AllUsersInfo = make(map[int]string)
 var AllSchedule = make(map[string][7]string)
 var AllLabels = make(map[int]UserGroup)
-var UsersNsuHelp = make(map[int]int)
+var AllSubscription = make(map[string]*Subscription)
 
 // Logger - Логер всех событий программы
 var Logger *log.Logger
@@ -63,9 +63,37 @@ type UserInfo struct {
 	ID             int    `json:"ID"`
 }
 
-// Subscriptions - Хранит информацию о подписках
-type Subscriptions struct {
-	Id        int    `json:"ID"`
-	Group     string `json:"Group"`
-	Selection int    `json:"Selection"`
+// Subscription - Вся структура хранения данных о подписках
+type Subscription struct {
+	Name              string      `json:"name"`
+	ScreenName        string      `json:"screen_name"`
+	Posts             *[]Post     `json:"posts"`
+	UserSubscriptions map[int]int `json:"subscriptions"`
+}
+
+func (s *Subscription) ChangeSubscriptions(id int) string {
+	v, ok := s.UserSubscriptions[id]
+	if !ok {
+		s.UserSubscriptions[id] = Yes
+		return "Вы были подписаны на рассылку " + s.Name + "."
+	} else {
+		if v != 0 {
+			s.UserSubscriptions[id] = No
+			return "Вы были отписаны от рассылки " + s.Name + "."
+		} else {
+			s.UserSubscriptions[id] = Yes
+			return "Вы были подписаны на рассылку " + s.Name + "."
+		}
+	}
+}
+
+type Post struct {
+	Text     string `json:"text"`
+	Href     string `json:"href"`
+	Date     int    `json:"date"`
+	IsPinned int    `json:"is_pinned"`
+}
+
+func (post *Post) String() string {
+	return time.Unix(int64(post.Date), 0).Format(MyTimeFormat) + "\n" + post.Href + "\n" + post.Text
 }

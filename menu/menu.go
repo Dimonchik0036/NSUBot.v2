@@ -1,12 +1,12 @@
 package menu
 
 import (
+	"TelegramBot/all_types"
 	"TelegramBot/customers"
 	"TelegramBot/jokes"
 	"TelegramBot/loader"
 	"TelegramBot/schedule"
 	"TelegramBot/subscriptions"
-	"TelegramBot/types"
 	"TelegramBot/weather"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
@@ -63,15 +63,15 @@ func MessageProcessing(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	}
 
 	if update.InlineQuery != nil {
-		types.Logger.Print("InlineQuery")
+		all_types.Logger.Print("InlineQuery")
 	}
 
 	if update.ChosenInlineResult != nil {
-		types.Logger.Print("ChosenInlineResult")
+		all_types.Logger.Print("ChosenInlineResult")
 	}
 
 	if update.ChannelPost != nil {
-		types.Logger.Print("ChannelPost")
+		all_types.Logger.Print("ChannelPost")
 	}
 
 	return
@@ -80,7 +80,7 @@ func MessageProcessing(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error) {
 	command, argument := customers.DecomposeQuery(update.CallbackQuery.Data)
 
-	types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
+	all_types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
 
 	switch command {
 	case tag_keyboard:
@@ -179,7 +179,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 		bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Введите номер группы"))
 	case tag_week:
-		g, ok := types.AllLabels[update.CallbackQuery.From.ID]
+		g, ok := all_types.AllLabels[update.CallbackQuery.From.ID]
 		if !ok || g.MyGroup == "" {
 			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Вы не указали свою группу")
 			m := UniteMarkup(tgbotapi.NewInlineKeyboardMarkup(
@@ -203,7 +203,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Готово")
 		} else {
 			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Произошла ошибка, сообщите об этом мне /feedback, если ошибка появляется")
-			bot.Send(tgbotapi.NewMessage(types.MyId, "Проблема с расписанием на неделю у группы "+g.MyGroup))
+			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Проблема с расписанием на неделю у группы "+g.MyGroup))
 		}
 
 		m := UniteMarkup(WeekMenu(), RowButtonBack(tag_schedule, true))
@@ -323,14 +323,14 @@ func StartDeleteLabel(argument string, id int) (text string, markup tgbotapi.Inl
 	text = "Нажмите на метки, которые хотите удалить"
 
 	if argument != "" {
-		v := types.AllLabels[id]
+		v := all_types.AllLabels[id]
 
 		if argument == v.MyGroup {
 			v.MyGroup = ""
 
-			types.AllLabels[id] = v
+			all_types.AllLabels[id] = v
 		} else {
-			delete(types.AllLabels[id].Group, argument)
+			delete(all_types.AllLabels[id].Group, argument)
 		}
 	}
 
@@ -361,7 +361,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		button = q.button
 	}
 
-	types.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
+	all_types.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
 
@@ -373,7 +373,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 			msg.ReplyMarkup = RowButtonBack(tag_options, true)
 			bot.Send(msg)
 
-			bot.Send(tgbotapi.NewMessage(types.MyId, argument+"\n\nОтзыв от: ["+fmt.Sprint(update.Message.From.ID)+"]\n@"+update.Message.From.UserName+"\n"+update.Message.From.LastName+" "+update.Message.From.FirstName))
+			bot.Send(tgbotapi.NewMessage(all_types.MyId, argument+"\n\nОтзыв от: ["+fmt.Sprint(update.Message.From.ID)+"]\n@"+update.Message.From.UserName+"\n"+update.Message.From.LastName+" "+update.Message.From.FirstName))
 
 			return
 		}
@@ -385,8 +385,8 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
 	case "reset":
-		if update.Message.From.ID == types.MyId {
-			bot.Send(tgbotapi.NewMessage(types.MyId, "Выключаюсь."))
+		if update.Message.From.ID == all_types.MyId {
+			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Выключаюсь."))
 
 			go func() {
 				FlagToRunner = false
@@ -464,7 +464,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	case "clearlabels":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(update.Message.From.ID)))
 	case "delete":
-		delete(types.AllLabels[update.Message.From.ID].Group, argument)
+		delete(all_types.AllLabels[update.Message.From.ID].Group, argument)
 	case "joke", "j":
 		joke, err := jokes.GetJokes()
 		if err == nil {
@@ -563,7 +563,7 @@ func WeekMenu() (markup tgbotapi.InlineKeyboardMarkup) {
 }
 
 func ShowLabelsButton(prefix string, id int) (markup tgbotapi.InlineKeyboardMarkup) {
-	v, ok := types.AllLabels[id]
+	v, ok := all_types.AllLabels[id]
 	if !ok {
 		return
 	}

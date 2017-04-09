@@ -1,11 +1,13 @@
 package subscriptions
 
 import (
+	"TelegramBot/all_types"
 	"TelegramBot/mymodule"
+	"TelegramBot/vkapi"
 	"bufio"
 	"errors"
+	"fmt"
 	"golang.org/x/net/html"
-	"TelegramBot/types"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -183,22 +185,6 @@ func GetGroupPost(groupName string) ([CountPost][2]string, error) {
 	return p, err
 }
 
-func ChangeSubscriptions(id int, name string) string {
-	v, ok := types.UsersNsuHelp[id]
-	if !ok {
-		types.UsersNsuHelp[id] = types.Yes
-		return "Вы были подписаны на рассылку " + name + "."
-	} else {
-		if v != 0 {
-			types.UsersNsuHelp[id] = types.No
-			return "Вы были отписаны от рассылки " + name + "."
-		} else {
-			types.UsersNsuHelp[id] = types.Yes
-			return "Вы были подписаны на рассылку " + name + "."
-		}
-	}
-}
-
 func ChangeDefaultGroup(group string) string {
 	_, err := GetGroupPost(group)
 	if err == nil {
@@ -207,4 +193,55 @@ func ChangeDefaultGroup(group string) string {
 	} else {
 		return "Группа не валидна."
 	}
+}
+
+func GetPosts(domain string, count int) (posts []all_types.Post, err error) {
+	res, err := vkapi.GetWallJson(domain, 0, count, "all")
+	if err != nil {
+		return
+	}
+
+	if res.Items == nil {
+		return posts, errors.New("*Item равен nil")
+	}
+
+	for _, item := range *res.Items {
+		if item.MarkedAsAds != 0 {
+			continue
+		}
+
+		var post all_types.Post
+		post.Text = item.Text
+		post.Date = item.Date
+		post.IsPinned = post.IsPinned
+		post.Href = "https://vk.com/wall" + fmt.Sprint(item.OwnerID) + "_" + fmt.Sprint(item.ID)
+
+		posts = append(posts, post)
+	}
+
+	return
+}
+
+func AddNewGroupToParse(domain string) (err error) {
+	g, err := vkapi.GetGroup(0, domain)
+	if err != nil {
+		return err
+	}
+
+	var sub all_types.Subscription
+
+	sub.Name = g.Name
+	sub.ScreenName = domain
+	sub.UserSubscriptions = make(map[int]int)
+
+	posts, err := GetPosts(domain, 5)
+	if err != nil {
+		return
+	}
+
+	sub.Posts = &posts
+
+	all_types.AllSubscription[domain] = &sub
+
+	return nil
 }
