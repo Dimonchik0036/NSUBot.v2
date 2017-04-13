@@ -96,7 +96,7 @@ func GetWallJson(domain string, offset int, count int, filter string) (*Response
 
 	res.Body.Close()
 
-	fmt.Println(string(b))
+	//fmt.Println(string(b))
 
 	var ApiVK ApiVK
 	err = json.Unmarshal(b, &ApiVK)

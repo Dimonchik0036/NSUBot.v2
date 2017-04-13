@@ -11,13 +11,8 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-	"strconv"
 	"time"
 )
-
-// Хранят количество пользователей
-var chatsCount int
-var usersCount int
 
 // loadAll - Загружает все необходимые данные и возвращает указатель на BotAPI
 func loadAll() (bot *tgbotapi.BotAPI) {
@@ -62,7 +57,7 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 				}
 			}
 
-			time.Sleep(5 * time.Minute)
+			time.Sleep(all_types.ScheduleDelay)
 		}
 	}()
 
@@ -73,11 +68,11 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 				all_types.Logger.Print(err)
 			}
 
-			time.Sleep(time.Minute)
+			time.Sleep(2 * time.Minute)
 		}
 	}()
 
-	usersCount, err = loader.LoadUsers()
+	all_types.UsersCount, err = loader.LoadUsers()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,9 +97,18 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 		all_types.Logger.Print(err)
 	}
 
+	_, err = bot.Send(tgbotapi.NewMessage(all_types.MyId, "Я перезагрузился."))
+	if err != nil {
+		all_types.Logger.Print("Не смог отправить весточку повелителю.", err)
+	}
+
+	CheckDefaultGroup(bot, all_types.NsuHelp)
+	CheckDefaultGroup(bot, all_types.NsuSecret)
+	CheckDefaultGroup(bot, all_types.NsuLove)
+
 	go func() {
 		for {
-			time.Sleep(7 * time.Minute)
+			time.Sleep(all_types.DelayUpdate)
 
 			if !menu.FlagToRunner {
 				return
@@ -128,42 +132,61 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 	}()
 
 	go func() {
-		for a := subscriptions.GetNewPosts(); len(a) == 0 || (a[0][1] == "" && a[1][0] == ""); a = subscriptions.GetNewPosts() {
-			time.Sleep(5 * time.Second)
-		}
-
-		all_types.Logger.Print("Удачно загрузилась парсилка.")
-
 		for {
-			a := subscriptions.GetNewPosts()
-			if len(a) != 0 {
-				if a[0][0] != "" {
-					for i, b := range all_types.UsersNsuHelp {
-						if b != 0 {
-							for _, v := range a {
-								if len([]byte(v[1])) > 4500 {
-									v[1] = string([]byte(v[1][:4500])) + "\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
+			for _, v := range all_types.AllSubscription {
+				if !v.IsActive {
+					continue
+				}
+
+				m, err := v.GetAndRefreshLastPosts()
+				if err != nil {
+					log.Println(err)
+					log.Println(m)
+					continue
+				}
+
+				if len(m) > 0 {
+					for i, ok := range v.UserSubscriptions {
+						if ok != 0 {
+							for _, post := range m {
+								if len(post) > 4500 {
+									post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
 								}
-								bot.Send(tgbotapi.NewMessage(int64(i), v[0]+"\n\n"+v[1]))
+
+								bot.Send(tgbotapi.NewMessage(int64(i), v.Name+"\n"+post))
 							}
 						}
 					}
-
 				}
+
+				time.Sleep(time.Second)
 			}
 
-			time.Sleep(33 * time.Second)
+			time.Sleep(all_types.ParseDelay)
 		}
 	}()
 
 	all_types.Logger.Printf("Бот %s запущен.", bot.Self.UserName)
 
-	_, err = bot.Send(tgbotapi.NewMessage(all_types.MyId, "Я перезагрузился."))
-	if err != nil {
-		all_types.Logger.Print("Не смог отправить весточку повелителю.", err)
-	}
-
 	return
+}
+
+func CheckDefaultGroup(bot *tgbotapi.BotAPI, domain string) {
+	s, ok := all_types.AllSubscription[domain]
+	if !ok {
+		err := subscriptions.AddNewGroupToParse(domain)
+		if err != nil {
+			all_types.Logger.Print(err)
+		}
+
+		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Отсутствует: "+domain))
+		all_types.Logger.Print("Отсутствует: " + domain)
+	} else {
+		if !s.IsActive {
+			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Бездействует: "+domain))
+			all_types.Logger.Print("Бездействует: " + domain)
+		}
+	}
 }
 
 func messageLog(update tgbotapi.Update) {
@@ -207,7 +230,7 @@ func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 
 	if ok {
 		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Новый пользователь!\n"+m))
-		usersCount++
+		all_types.UsersCount++
 	} else {
 		loader.ReloadUserDate(update.Message.From.ID)
 	}
@@ -223,51 +246,6 @@ func messages(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	if err != nil {
 		all_types.Logger.Print(err)
 	}
-
-	sendMembers(bot, update)
-
-	if update.Message == nil {
-		return
-	}
-
-	var msg tgbotapi.MessageConfig
-	var nilMsg bool
-
-	if update.Message.IsCommand() {
-		switch update.Message.Command() {
-		case "post":
-			a, err := subscriptions.GetGroupPost(update.Message.CommandArguments())
-			if err == nil {
-				if a[1][0] != "" || a[0][0] != "" {
-					if a[0][0] != "" {
-						a[0][0] += "\nЗакреплённая запись"
-					}
-
-					for i := len(a) - 1; i >= 0; i-- {
-						if len(a[i][1]) > 4500 {
-							a[i][1] = a[i][1][:4500] + "...\n\n>>> Достигнуто ограничение на размер сообщения, перейдите по ссылке в начале сообщения, если хотите дочитать. <<<"
-						}
-
-						bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, a[i][0]+"\n\n"+a[i][1]))
-					}
-					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Всегда пожалуйста.")
-				} else {
-					msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна.")
-				}
-			} else {
-				msg = tgbotapi.NewMessage(update.Message.Chat.ID, "Группа не валидна.")
-			}
-		default:
-			nilMsg = true
-		}
-
-		if !nilMsg {
-			_, err := bot.Send(msg)
-			if err != nil {
-				all_types.Logger.Print("Невозможно отправить: ", err)
-			}
-		}
-	}
 }
 
 // newChat Возвращает строку с новым каналом
@@ -279,125 +257,9 @@ func newChat(chat *tgbotapi.Chat) string {
 		"\nID: " + fmt.Sprintf("%d", chat.ID) +
 		"\nТип: " + chat.Type
 
-	chatsCount++
+	all_types.ChatsCount++
 
 	return message
-}
-
-// sendMembers Отправляет статистику по пользователям
-func sendMembers(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
-	if update.Message == nil || update.Message.From.ID != all_types.MyId {
-		return
-	}
-
-	var message string
-
-	switch update.Message.Command() {
-	case "defaultgroup":
-		message = subscriptions.ChangeDefaultGroup(update.Message.CommandArguments())
-	case "admin":
-		message += "/users <_ | all> - Выводит статистику по пользователям.\n" +
-			"/groups <_ | all> - Выводит статистику по каналам.\n" +
-			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды.\n" +
-			"/sendmelog <data | users | labels | sub> - Присылает файл с логами.\n" +
-			"/sendall <текст> - Делает рассылку текста. \n" +
-			"/reset - Завершает текущую сессию бота. \n" +
-			"/defaultgroup <id группы> - Изменяет отслеживаемую группу."
-	case "users":
-		if update.Message.CommandArguments() == "all" {
-
-			var count int
-			for _, v := range all_types.AllUsersInfo {
-				count++
-				message += loader.WriteUsers(v) + "\n\n"
-
-				if (count % 10) == 0 {
-					bot.Send(tgbotapi.NewMessage(all_types.MyId, message))
-					message = ""
-				}
-			}
-		}
-
-		message += "Количество пользователей: " + strconv.Itoa(usersCount)
-	case "groups":
-		if update.Message.CommandArguments() == "all" {
-			for _, v := range all_types.AllChatsInfo {
-				message += v + "\n\n"
-			}
-
-		}
-
-		message += "Количество чатов: " + strconv.Itoa(chatsCount)
-	case "sendall":
-		if update.Message.CommandArguments() != "" {
-			all_types.Logger.Print("Рассылаю всем: '" + update.Message.CommandArguments() + "'")
-
-			for i := range all_types.AllUsersInfo {
-				_, err := bot.Send(tgbotapi.NewMessage(int64(i), update.Message.CommandArguments()))
-				if err != nil {
-					all_types.Logger.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
-				}
-			}
-		}
-
-		return
-	case "setmessage":
-		weather.CurrentWeather = update.Message.CommandArguments()
-		all_types.Logger.Print("Обновлена строка температуры на: " + weather.CurrentWeather)
-		message += "Готово!\n" + "'" + weather.CurrentWeather + "'"
-	case "sendmelog":
-		if update.Message.CommandArguments() == "data" ||
-			update.Message.CommandArguments() == "users" ||
-			update.Message.CommandArguments() == "labels" ||
-			update.Message.CommandArguments() == "sub" {
-
-			_, err := bot.Send(tgbotapi.NewMessage(all_types.MyId, "Отправляю..."))
-			if err != nil {
-				all_types.Logger.Print("Что-то пошло не так при sendmelog", err)
-			}
-
-			var name string
-
-			switch update.Message.CommandArguments() {
-			case "data":
-				name = all_types.LoggerFilename
-			case "users":
-				name = all_types.UsersFilename
-			case "labels":
-				name = all_types.LabelsFilename
-			case "sub":
-				name = all_types.SubscriptionsFilename
-			}
-
-			_, err = bot.Send(tgbotapi.NewDocumentUpload(all_types.MyId, name))
-			if err != nil {
-				_, err = bot.Send(tgbotapi.NewMessage(all_types.MyId, "Не удалось отправить файл"))
-				if err != nil {
-					all_types.Logger.Print("С отправкой файла всё плохо")
-				}
-
-				all_types.Logger.Print("Ошибка отправки файла лога:", err)
-			}
-		} else {
-			_, err := bot.Send(tgbotapi.NewMessage(all_types.MyId, "Попробуй ещё раз ввести аргументы правильно\n"+
-				"'data' - Файл полного лога\n"+
-				"'users' - файл с пользователями\n"+
-				"'labels' - файл с метками\n"+
-				"'sub' - файл с подписками"))
-			if err != nil {
-				all_types.Logger.Print("Что-то пошло не так ", err)
-			}
-		}
-
-		return
-	default:
-		return
-	}
-
-	_, err := bot.Send(tgbotapi.NewMessage(all_types.MyId, message))
-	if err != nil {
-		all_types.Logger.Print("Ошибка отправки сообщения - комманды:", err)
-	}
 }
 
 func main() {

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -29,26 +30,27 @@ const (
 )
 
 const (
-	tag_main            = "menu_main"
-	tag_week            = "menu_week"
-	tag_schedule        = "menu_schedule"
-	tag_weather         = "menu_weather"
-	tag_subscriptions   = "menu_subscriptions"
-	tag_options         = "menu_options"
-	tag_clear_labels    = "clear_labels"
-	tag_show_labels     = "show_labels"
-	tag_labels          = "menu_labels"
-	set_new_group       = "setgroup"
-	tag_delete          = "delete"
-	tag_schedule_day    = "tag_schedule_day"
-	tag_day             = "tag_day"
-	tag_keyboard        = "keyboard"
-	set_different_group = "set_different_group"
-	different_day       = "different_day"
-	today               = "today"
-	tomorrow            = "tomorrow"
-	faq                 = "faq"
-	feedback            = "feedback"
+	tag_main               = "menu_main"
+	tag_week               = "menu_week"
+	tag_schedule           = "menu_schedule"
+	tag_weather            = "menu_weather"
+	tag_subscriptions      = "menu_subscriptions"
+	tag_options            = "menu_options"
+	tag_clear_labels       = "clear_labels"
+	tag_show_labels        = "show_labels"
+	tag_labels             = "menu_labels"
+	set_new_group          = "setgroup"
+	tag_delete             = "delete"
+	tag_schedule_day       = "tag_schedule_day"
+	tag_day                = "tag_day"
+	tag_keyboard           = "keyboard"
+	tag_user_subscriptions = "user_subscriptions"
+	set_different_group    = "set_different_group"
+	different_day          = "different_day"
+	today                  = "today"
+	tomorrow               = "tomorrow"
+	faq                    = "faq"
+	feedback               = "feedback"
 )
 
 var FlagToRunner = true
@@ -105,16 +107,15 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-	case subscriptions.NsuHelp:
-		text := subscriptions.ChangeSubscriptions(update.CallbackQuery.From.ID, "Помогу в НГУ")
+	case tag_user_subscriptions:
+		subscriptions.ChangeGroupByDomain(argument, update.CallbackQuery.From.ID)
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
 
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
-
-		m := RowButtonBack(tag_subscriptions, true)
+		m := UniteMarkup(SubscriptionsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_main, false))
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-	case subscriptions.NsuFit:
+	case all_types.NsuFit:
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Скоро")
 
 		m := RowButtonBack(tag_subscriptions, true)
@@ -240,9 +241,9 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 		bot.Send(msg)
 	case tag_subscriptions:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Доступные подписки")
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
 
-		m := UniteMarkup(SubscriptionsMenu(), RowButtonBack(tag_main, false))
+		m := UniteMarkup(SubscriptionsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_main, false))
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
@@ -384,20 +385,6 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		return
 	case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
-	case "reset":
-		if update.Message.From.ID == all_types.MyId {
-			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Выключаюсь."))
-
-			go func() {
-				FlagToRunner = false
-				time.Sleep(5 * time.Second)
-
-				customers.UpdateUserLabels()
-				loader.UpdateUserSubscriptions()
-
-				os.Exit(0)
-			}()
-		}
 	case "weather":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather))
 	case "start":
@@ -470,15 +457,218 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		if err == nil {
 			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, joke))
 		}
-	case "nsuhelp":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(update.Message.From.ID, "Помогу в НГУ")))
-		return
 	case "faq":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, FaqText()))
 		return
 	}
 
+	if update.Message.From.ID == all_types.MyId {
+		adminMessage(bot, update.Message.Chat.ID, command, argument)
+	}
+
 	return
+}
+
+// sendMembers Отправляет статистику по пользователям
+func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument string) {
+	switch command {
+	case "admin":
+		bot.Send(tgbotapi.NewMessage(where, "/users <_ | all> - Выводит статистику по пользователям\n"+
+			"/groups <_ | all> - Выводит статистику по каналам\n"+
+			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды\n"+
+			"/sendmelog <data | users | labels | sub> - Присылает файл с логами\n"+
+			"/sendall <текст> - Делает рассылку текста\n"+
+			"/reset - Завершает текущую сессию бота\n"+
+			"/addnewgs <domain> - Добавляет группу к парсу\n"+
+			"/delgroup <domain> - Удаляет группу из списка парсинга\n"+
+			"/showgl - Показывает данные по подпискам\n"+
+			"/changeus <domain + id> - Изменяет подписку пользователю\n"+
+			"/activateg <domain> - Разрешает/запрещает парсинг группы\n"+
+			"/statg <domain> - Выводит статистику пользователей по этой группе\n"+
+			"/sendbyid <id + text> - Отправляет сообщение пользователю."))
+		return
+	case "reset":
+		bot.Send(tgbotapi.NewMessage(where, "Выключаюсь."))
+
+		go func() {
+			FlagToRunner = false
+			time.Sleep(5 * time.Second)
+
+			customers.UpdateUserLabels()
+			loader.UpdateUserInfo()
+			loader.UpdateUserSubscriptions()
+
+			os.Exit(0)
+		}()
+
+		return
+	case "sendbyid":
+		sId, text := customers.DecomposeQuery(argument)
+		id, err := strconv.Atoi(sId)
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(where, "Ошибка перевода числа"))
+			return
+		}
+
+		if text == "" {
+			bot.Send(tgbotapi.NewMessage(where, "Текст отсутствует"))
+			return
+		}
+
+		_, err = bot.Send(tgbotapi.NewMessage(int64(id), text))
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(where, "При отправке произошла ошибка: "+err.Error()))
+		}
+
+		return
+	case "users":
+		var message string
+
+		if argument == "all" {
+			var count int
+			for _, v := range all_types.AllUsersInfo {
+				count++
+				message += loader.WriteUsers(v) + "\n\n"
+
+				if (count % 15) == 0 {
+					bot.Send(tgbotapi.NewMessage(where, message))
+					message = ""
+				}
+			}
+		}
+
+		message += "Количество пользователей: " + strconv.Itoa(all_types.UsersCount)
+
+		bot.Send(tgbotapi.NewMessage(where, message))
+
+		return
+	case "groups":
+		var message string
+		if argument == "all" {
+			for _, v := range all_types.AllChatsInfo {
+				message += v + "\n\n"
+			}
+
+		}
+
+		message += "Количество чатов: " + strconv.Itoa(all_types.ChatsCount)
+
+		bot.Send(tgbotapi.NewMessage(where, message))
+
+		return
+	case "sendall":
+		if argument != "" {
+			all_types.Logger.Print("Рассылаю всем: '" + argument + "'")
+
+			for i := range all_types.AllUsersInfo {
+				_, err := bot.Send(tgbotapi.NewMessage(int64(i), argument))
+				if err != nil {
+					all_types.Logger.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
+				}
+			}
+		}
+
+		return
+	case "setmessage":
+		weather.CurrentWeather = argument
+		all_types.Logger.Print("Обновлена строка температуры на: " + weather.CurrentWeather)
+
+		bot.Send(tgbotapi.NewMessage(where, "Готово!\n"+"'"+weather.CurrentWeather+"'"))
+
+		return
+	case "sendmelog":
+		if argument == "data" ||
+			argument == "users" ||
+			argument == "labels" ||
+			argument == "sub" {
+
+			_, err := bot.Send(tgbotapi.NewMessage(where, "Отправляю..."))
+			if err != nil {
+				all_types.Logger.Print("Что-то пошло не так при sendmelog", err)
+			}
+
+			var name string
+
+			switch argument {
+			case "data":
+				name = all_types.LoggerFilename
+			case "users":
+				name = all_types.UsersFilename
+			case "labels":
+				name = all_types.LabelsFilename
+			case "sub":
+				name = all_types.SubscriptionsFilename
+			}
+
+			_, err = bot.Send(tgbotapi.NewDocumentUpload(where, name))
+			if err != nil {
+				_, err = bot.Send(tgbotapi.NewMessage(where, "Не удалось отправить файл"))
+				if err != nil {
+					all_types.Logger.Print("С отправкой файла всё плохо")
+				}
+
+				all_types.Logger.Print("Ошибка отправки файла лога:", err)
+			}
+		} else {
+			_, err := bot.Send(tgbotapi.NewMessage(where, "Попробуй ещё раз ввести аргументы правильно\n"+
+				"'data' - Файл полного лога\n"+
+				"'users' - файл с пользователями\n"+
+				"'labels' - файл с метками\n"+
+				"'sub' - файл с подписками"))
+			if err != nil {
+				all_types.Logger.Print("Что-то пошло не так ", err)
+			}
+		}
+
+		return
+	case "addnewgs":
+		err := subscriptions.AddNewGroupToParse(argument)
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(where, err.Error()))
+		} else {
+			bot.Send(tgbotapi.NewMessage(where, "Выполнено"))
+		}
+	case "showgl":
+		g := subscriptions.ShowAllGroups()
+		var message string
+		for _, m := range g {
+			message += m + "\n"
+		}
+
+		bot.Send(tgbotapi.NewMessage(where, message))
+	case "changeus":
+		domain, sid := customers.DecomposeQuery(argument)
+		id, err := strconv.Atoi(sid)
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(where, "Ошибка перевода числа"))
+			return
+		}
+
+		message := subscriptions.ChangeGroupById(domain, id)
+		bot.Send(tgbotapi.NewMessage(where, message))
+	case "activateg":
+		bot.Send(tgbotapi.NewMessage(where, subscriptions.ChangeGroupActivity(argument)))
+	case "delgroup":
+		bot.Send(tgbotapi.NewMessage(where, subscriptions.DeleteGroup(argument)))
+	case "statg":
+		m := subscriptions.ShowAllUsersGroup(argument)
+		var count int
+		var message string
+
+		for _, v := range m {
+			count++
+			message += v + "\n"
+
+			if (count % 20) == 0 {
+				bot.Send(tgbotapi.NewMessage(where, message))
+				message = ""
+			}
+		}
+
+		bot.Send(tgbotapi.NewMessage(where, message+"\nВсего пользователей: "+strconv.Itoa(count)))
+
+		return
+	}
 }
 
 func RowButtonBack(href string, main bool) tgbotapi.InlineKeyboardMarkup {
@@ -588,12 +778,32 @@ func MainKeyboard() (keyboard tgbotapi.ReplyKeyboardMarkup, err error) {
 	return
 }
 
-func SubscriptionsMenu() (markup tgbotapi.InlineKeyboardMarkup) {
+func CheckSub(domain string, id int) string {
+	s, ok := all_types.AllSubscription[domain]
+	if !ok {
+		return "⚠️"
+	}
+
+	u, ok := s.UserSubscriptions[id]
+	if !ok {
+		return ""
+	}
+
+	if u == 0 {
+		return ""
+	} else {
+		return "☑️"
+	}
+}
+
+func SubscriptionsMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
 	markup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Помогу в НГУ", subscriptions.NsuHelp)),
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuSecret, id)+"Подслушано НГУ", tag_user_subscriptions+" "+all_types.NsuSecret)),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Сайт ФИТ НГУ", subscriptions.NsuFit)))
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuLove, id)+"Признавашки НГУ", tag_user_subscriptions+" "+all_types.NsuLove)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)))
 	return
 }
 

@@ -19,29 +19,15 @@ func LoadUsersSubscriptions() error {
 		return nil
 	}
 
-	decUsers := json.NewDecoder(userFile)
-
-	for {
-		var s all_types.Subscriptions
-
-		if err := decUsers.Decode(&s); err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		switch s.Group {
-		case "nsuhelp":
-			all_types.UsersNsuHelp[s.Id] = s.Selection
-		}
-	}
-
-	err = userFile.Close()
+	dec := json.NewDecoder(userFile)
+	err = dec.Decode(&all_types.AllSubscription)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	err = userFile.Close()
+
+	return err
 }
 
 func UpdateUserSubscriptions() error {
@@ -50,21 +36,12 @@ func UpdateUserSubscriptions() error {
 		return err
 	}
 
-	var s all_types.Subscriptions
-	for i, v := range all_types.UsersNsuHelp {
-		s.Id = i
-		s.Selection = v
-		s.Group = "nsuhelp"
-
-		b, err := json.Marshal(s)
-		if err != nil {
-			return err
-		}
-
-		b = append(b, '\n')
-
-		userFile.Write(b)
+	b, err := json.Marshal(all_types.AllSubscription)
+	if err != nil {
+		return err
 	}
+
+	userFile.Write(b)
 
 	err = userFile.Close()
 
