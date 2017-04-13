@@ -72,9 +72,9 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 		}
 	}()
 
-	all_types.UsersCount, err = loader.LoadUsers()
+	err = loader.LoadUsersInfo()
 	if err != nil {
-		log.Fatal(err)
+		all_types.Logger.Print(err)
 	}
 
 	err = loader.LoadChats()
@@ -223,17 +223,7 @@ func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 		}
 	}
 
-	m, ok, err := loader.NewUserInfo(update)
-	if err != nil {
-		return err
-	}
-
-	if ok {
-		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Новый пользователь!\n"+m))
-		all_types.UsersCount++
-	} else {
-		loader.ReloadUserDate(update.Message.From.ID)
-	}
+	loader.NewUserInfo(bot, update)
 
 	return nil
 }
@@ -256,8 +246,6 @@ func newChat(chat *tgbotapi.Chat) string {
 		"\nЗаголовок: " + chat.Title +
 		"\nID: " + fmt.Sprintf("%d", chat.ID) +
 		"\nТип: " + chat.Type
-
-	all_types.ChatsCount++
 
 	return message
 }

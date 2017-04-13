@@ -34,6 +34,7 @@ const (
 	tag_week               = "menu_week"
 	tag_schedule           = "menu_schedule"
 	tag_weather            = "menu_weather"
+	tag_support            = "menu_support"
 	tag_subscriptions      = "menu_subscriptions"
 	tag_options            = "menu_options"
 	tag_clear_labels       = "clear_labels"
@@ -50,6 +51,7 @@ const (
 	today                  = "today"
 	tomorrow               = "tomorrow"
 	faq                    = "faq"
+	help                   = "help"
 	feedback               = "feedback"
 )
 
@@ -83,6 +85,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 	command, argument := customers.DecomposeQuery(update.CallbackQuery.Data)
 
 	all_types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
+	loader.ReloadUserDate(update.CallbackQuery.From.ID)
 
 	switch command {
 	case tag_keyboard:
@@ -96,6 +99,20 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		}
 
 		bot.Send(msg)
+	case tag_support:
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Поддержка")
+
+		m := UniteMarkup(SupportMenu(), RowButtonBack(tag_options, true))
+		msg.ReplyMarkup = &m
+
+		bot.Send(msg)
+	case help:
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, GetHelp(""))
+
+		m := UniteMarkup(RowButtonBack(tag_support, true))
+		msg.ReplyMarkup = &m
+
+		bot.Send(msg)
 	case feedback:
 		queue[update.CallbackQuery.From.ID] = queueType{feedback, "", ""}
 
@@ -103,12 +120,13 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 	case faq:
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, FaqText())
 
-		m := RowButtonBack(tag_options, true)
+		m := RowButtonBack(tag_support, true)
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
 	case tag_user_subscriptions:
-		subscriptions.ChangeGroupByDomain(argument, update.CallbackQuery.From.ID)
+		subscriptions.ChangeSubscriptions(argument, update.CallbackQuery.From.ID)
+
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
 
 		m := UniteMarkup(SubscriptionsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_main, false))
@@ -363,6 +381,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	}
 
 	all_types.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
+	loader.ReloadUserDate(update.Message.From.ID)
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
 
@@ -371,7 +390,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		if argument != "" {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за отзыв!")
 
-			msg.ReplyMarkup = RowButtonBack(tag_options, true)
+			msg.ReplyMarkup = RowButtonBack(tag_support, true)
 			bot.Send(msg)
 
 			bot.Send(tgbotapi.NewMessage(all_types.MyId, argument+"\n\nОтзыв от: ["+fmt.Sprint(update.Message.From.ID)+"]\n@"+update.Message.From.UserName+"\n"+update.Message.From.LastName+" "+update.Message.From.FirstName))
@@ -389,7 +408,8 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather))
 	case "start":
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			"Привет!\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, чтобы было проще возвращаться к меню.\nЕщё есть полезные советы /help и /faq.")
+			"Привет!\n\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, чтобы было проще возвращаться к меню.\n\nЕщё есть полезные советы /help и /faq.\n\n"+
+				"Если хочешь получать новости обновлений, то подпишись на рассылку через /menu » Подписки")
 
 		msg.ReplyMarkup = MainMenu()
 
@@ -478,9 +498,11 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/setmessage <текст> - Задаёт сообщение, которое будет отображаться вместо погоды\n"+
 			"/sendmelog <data | users | labels | sub> - Присылает файл с логами\n"+
 			"/sendall <текст> - Делает рассылку текста\n"+
+			"/sendallall <текст> - Делает рассылку текста абсолютно всем, игнорируя ограничение\n"+
 			"/reset - Завершает текущую сессию бота\n"+
 			"/addnewgs <domain> - Добавляет группу к парсу\n"+
 			"/delgroup <domain> - Удаляет группу из списка парсинга\n"+
+			"/deluser <id> - Удаляет пользователя\n"+
 			"/showgl - Показывает данные по подпискам\n"+
 			"/changeus <domain + id> - Изменяет подписку пользователю\n"+
 			"/activateg <domain> - Разрешает/запрещает парсинг группы\n"+
@@ -528,7 +550,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			var count int
 			for _, v := range all_types.AllUsersInfo {
 				count++
-				message += loader.WriteUsers(v) + "\n\n"
+				message += v.String() + "\n" + "Рассылка: " + fmt.Sprint(v.PermissionToSend) + "\n\n"
 
 				if (count % 15) == 0 {
 					bot.Send(tgbotapi.NewMessage(where, message))
@@ -537,7 +559,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			}
 		}
 
-		message += "Количество пользователей: " + strconv.Itoa(all_types.UsersCount)
+		message += "Количество пользователей: " + strconv.Itoa(len(all_types.AllUsersInfo))
 
 		bot.Send(tgbotapi.NewMessage(where, message))
 
@@ -551,12 +573,29 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 
 		}
 
-		message += "Количество чатов: " + strconv.Itoa(all_types.ChatsCount)
+		message += "Количество чатов: " + strconv.Itoa(len(all_types.AllChatsInfo))
 
 		bot.Send(tgbotapi.NewMessage(where, message))
 
 		return
 	case "sendall":
+		if argument != "" {
+			all_types.Logger.Print("Рассылаю всем: '" + argument + "'")
+
+			for i, u := range all_types.AllUsersInfo {
+				if !u.PermissionToSend {
+					continue
+				}
+
+				_, err := bot.Send(tgbotapi.NewMessage(int64(i), argument+"\n\nВы всегда можете отписаться от получения рассылки через /menu » Подписки"))
+				if err != nil {
+					all_types.Logger.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
+				}
+			}
+		}
+
+		return
+	case "sendallall":
 		if argument != "" {
 			all_types.Logger.Print("Рассылаю всем: '" + argument + "'")
 
@@ -650,6 +689,8 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 		bot.Send(tgbotapi.NewMessage(where, subscriptions.ChangeGroupActivity(argument)))
 	case "delgroup":
 		bot.Send(tgbotapi.NewMessage(where, subscriptions.DeleteGroup(argument)))
+	case "deluser":
+		bot.Send(tgbotapi.NewMessage(where, customers.DeleteUser(argument)))
 	case "statg":
 		m := subscriptions.ShowAllUsersGroup(argument)
 		var count int
@@ -714,9 +755,19 @@ func OptionsMenu() (markup tgbotapi.InlineKeyboardMarkup) {
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Включить клавиатуру", tag_keyboard)),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Оставить отзыв", feedback)),
+			tgbotapi.NewInlineKeyboardButtonData("Поддержка", tag_support)))
+
+	return
+}
+
+func SupportMenu() (markup tgbotapi.InlineKeyboardMarkup) {
+	markup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("FAQ", faq)))
+			tgbotapi.NewInlineKeyboardButtonData("FAQ", faq)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Подсказки", help)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Оставить отзыв", feedback)))
 
 	return
 }
@@ -796,6 +847,19 @@ func CheckSub(domain string, id int) string {
 	}
 }
 
+func CheckNews(id int) string {
+	u, ok := all_types.AllUsersInfo[id]
+	if !ok {
+		return "⚠️"
+	}
+
+	if u.PermissionToSend {
+		return "☑️"
+	} else {
+		return ""
+	}
+}
+
 func SubscriptionsMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
 	markup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
@@ -803,7 +867,9 @@ func SubscriptionsMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuLove, id)+"Признавашки НГУ", tag_user_subscriptions+" "+all_types.NsuLove)),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)))
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckNews(id)+"Новости об обновлении бота", tag_user_subscriptions+" "+all_types.News)))
 	return
 }
 

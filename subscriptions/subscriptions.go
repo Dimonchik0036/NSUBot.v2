@@ -7,6 +7,26 @@ import (
 	"fmt"
 )
 
+func ChangeSubscriptions(argument string, id int) string {
+	switch argument {
+	case all_types.News:
+		u, ok := all_types.AllUsersInfo[id]
+		if !ok {
+			return "Ошибка обработки группы, сообщите об этом /feedback"
+		}
+
+		if u.PermissionToSend {
+			u.PermissionToSend = false
+			return "Вы были отписаны от рассылки обновлений"
+		} else {
+			u.PermissionToSend = true
+			return "Вы были подписаны на рассылку обновлений"
+		}
+	default:
+		return ChangeGroupByDomain(argument, id)
+	}
+}
+
 func ChangeGroupByDomain(domain string, id int) string {
 	s, ok := all_types.AllSubscription[domain]
 	if !ok {

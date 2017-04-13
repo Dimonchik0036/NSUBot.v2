@@ -5,7 +5,23 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"strconv"
 )
+
+func DeleteUser(argument string) string {
+	id, err := strconv.Atoi(argument)
+	if err != nil {
+		return "Ошибка преобразования числа"
+	}
+
+	_, ok := all_types.AllUsersInfo[id]
+	if !ok {
+		return "Такая группа не найдена"
+	} else {
+		delete(all_types.AllUsersInfo, id)
+		return "Пользователь " + argument + " удален"
+	}
+}
 
 func UpdateUserLabels() error {
 	userFile, err := os.OpenFile(all_types.LabelsFilename, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.ModePerm)

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"io"
 	"log"
@@ -61,17 +60,6 @@ func LoadLoggers() (err error) {
 	return
 }
 
-func WriteUsers(mess string) string {
-	var u all_types.UserInfo
-
-	err := json.Unmarshal([]byte(mess), &u)
-	if err != nil {
-		return "Ошибочка."
-	}
-
-	return convertUserInfo(u)
-}
-
 // LoadUserGroup Загружает данные о запомненных группах.
 func LoadUserGroup() error {
 	userFile, err := os.OpenFile(all_types.LabelsFilename, os.O_RDWR, os.ModePerm)
@@ -122,41 +110,25 @@ func LoadUserGroup() error {
 	return nil
 }
 
-// LoadUsers Загружает данные о пользователях.
-func LoadUsers() (int, error) {
+func LoadUsersInfo() (err error) {
 	userFile, err := os.OpenFile(all_types.UsersFilename, os.O_RDWR, os.ModePerm)
 	if err != nil {
-		return 0, nil
+		return nil
 	}
-
-	var countUsers int
 
 	dec := json.NewDecoder(userFile)
 
-	for {
-		var u all_types.UserInfo
-
-		if err := dec.Decode(&u); err == io.EOF {
-			break
-		} else if err != nil {
-			return countUsers, err
-		}
-
-		info, err := json.Marshal(u)
-		if err != nil {
-			continue
-		}
-
-		all_types.AllUsersInfo[u.ID] = string(info)
-		countUsers++
+	err = dec.Decode(&all_types.AllUsersInfo)
+	if err != nil {
+		return
 	}
 
 	err = userFile.Close()
 	if err != nil {
-		return countUsers, err
+		return err
 	}
 
-	return countUsers, nil
+	return nil
 }
 
 func UpdateUserInfo() error {
@@ -165,9 +137,12 @@ func UpdateUserInfo() error {
 		return err
 	}
 
-	for _, v := range all_types.AllUsersInfo {
-		userFile.WriteString(v + "\n")
+	b, err := json.Marshal(all_types.AllUsersInfo)
+	if err != nil {
+		return err
 	}
+
+	userFile.Write(b)
 
 	err = userFile.Close()
 
@@ -175,81 +150,43 @@ func UpdateUserInfo() error {
 }
 
 // NewUserInfo Возвращает строку с новым пользователем
-func NewUserInfo(update tgbotapi.Update) (string, bool, error) {
+func NewUserInfo(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	if update.Message == nil {
-		return "", false, errors.New("Не сообщение")
+		return
 	}
 
 	_, ok := all_types.AllUsersInfo[update.Message.From.ID]
 	if ok {
-		return "", false, nil
+		return
 	}
 
 	timeNow := time.Now().Format(all_types.MyTimeFormat)
 
-	u := all_types.UserInfo{
-		timeNow,
-		timeNow,
-		update.Message.From.FirstName,
-		update.Message.From.LastName,
-		update.Message.From.UserName,
-		update.Message.From.ID}
+	var u all_types.UserInfo
 
-	info, err := json.Marshal(u)
-	if err != nil {
-		return "", true, err
+	u.TimeCreate = timeNow
+	u.TimeLastAction = timeNow
+	u.FirstName = update.Message.From.FirstName
+	u.LastName = update.Message.From.LastName
+	u.ID = update.Message.From.ID
+	u.PermissionToSend = false
+
+	if update.Message.From.UserName != "" {
+		u.UserName = "@" + update.Message.From.UserName
 	}
 
-	all_types.AllUsersInfo[u.ID] = string(info)
+	all_types.AllUsersInfo[u.ID] = &u
 
-	userFile, err := os.OpenFile(all_types.UsersFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModePerm)
-	if err != nil {
-		return convertUserInfo(u), true, err
-	}
-
-	userFile.WriteString(string(info) + "\n")
-
-	err = userFile.Close()
-	if err != nil {
-		return convertUserInfo(u), true, err
-	}
-
-	return convertUserInfo(u), true, nil
-}
-
-func convertUserInfo(u all_types.UserInfo) string {
-	info := u.UserName
-
-	if info == "" {
-		info = u.FirstName + " " + u.LastName
-	} else {
-		info = "@" + info
-	}
-
-	return "ID: " + fmt.Sprintf("%d", u.ID) + "\n" + info + "\nLast action: " + u.TimeLastAction
+	bot.Send(tgbotapi.NewMessage(all_types.MyId, "Новый пользователь!\n"+u.String()))
 }
 
 func ReloadUserDate(id int) error {
-	info, ok := all_types.AllUsersInfo[id]
+	_, ok := all_types.AllUsersInfo[id]
 	if !ok {
 		return errors.New("Не удалось найти пользователя.")
 	}
 
-	var u all_types.UserInfo
-
-	err := json.Unmarshal([]byte(info), &u)
-	if err != nil {
-		return errors.New("Не удалось расшифровать данные.")
-	}
-
-	u.TimeLastAction = time.Now().Format(all_types.MyTimeFormat)
-
-	res, err := json.Marshal(u)
-	if err != nil {
-		return err
-	}
-
-	all_types.AllUsersInfo[id] = string(res)
+	all_types.AllUsersInfo[id].TimeLastAction = time.Now().Format(all_types.MyTimeFormat)
 
 	return nil
 }

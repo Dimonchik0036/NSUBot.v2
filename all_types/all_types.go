@@ -10,7 +10,7 @@ import (
 
 // Хранят основную информацию
 var AllChatsInfo = make(map[int64]string)
-var AllUsersInfo = make(map[int]string)
+var AllUsersInfo = make(map[int]*UserInfo)
 var AllSchedule = make(map[string][7]string)
 var AllLabels = make(map[int]UserGroup)
 var AllSubscription = make(map[string]*Subscription)
@@ -19,14 +19,11 @@ var AllSubscription = make(map[string]*Subscription)
 var Logger *log.Logger
 var LoggerFilename string = time.Now().Format("2006-01-02T15-04") + ".txt"
 
-// Хранят количество пользователей
-var ChatsCount int
-var UsersCount int
-
 const (
 	NsuHelp   = "nsuhelp"
 	NsuLove   = "lovensu"
 	NsuSecret = "secretnsu"
+	News      = "mynews"
 
 	NsuFit = "nsufit"
 
@@ -42,7 +39,7 @@ const (
 )
 
 const (
-	MyTimeFormat   = "02.01.06 15:04:10"
+	MyTimeFormat   = "02.01.06 15:04"
 	MyGroupLabel   = "Моя"
 	MaxCountLabel  = 20
 	MaxCountSymbol = 64
@@ -73,14 +70,22 @@ type UserLabels struct {
 	Group string `json:"Group"`
 }
 
-// UserInfo - Хранит данные о пользователе
 type UserInfo struct {
-	TimeCreate     string `json:"TimeCreate"`
-	TimeLastAction string `json:"TimeLastAction"`
-	FirstName      string `json:"FirstName"`
-	LastName       string `json:"LastName"`
-	UserName       string `json:"UserName"`
-	ID             int    `json:"ID"`
+	TimeCreate       string `json:"time_create"`
+	TimeLastAction   string `json:"time_last_action"`
+	PermissionToSend bool   `json:"permission_to_send"`
+	FirstName        string `json:"first_name"`
+	LastName         string `json:"last_name"`
+	UserName         string `json:"user_name"`
+	ID               int    `json:"id"`
+}
+
+func (u *UserInfo) String() string {
+	if u.UserName == "" {
+		u.UserName = u.FirstName + " " + u.LastName
+	}
+
+	return "ID: " + fmt.Sprintf("%d", u.ID) + "\n" + u.UserName + "\nДата регистрации: " + u.TimeCreate + "\nПоследняя активность: " + u.TimeLastAction
 }
 
 // Subscription - Вся структура хранения данных о подписках
