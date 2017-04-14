@@ -180,13 +180,18 @@ func NewUserInfo(bot *tgbotapi.BotAPI, update tgbotapi.Update) {
 	bot.Send(tgbotapi.NewMessage(all_types.MyId, "Новый пользователь!\n"+u.String()))
 }
 
-func ReloadUserDate(id int) error {
-	_, ok := all_types.AllUsersInfo[id]
+func ReloadUserDate(user *tgbotapi.User) error {
+	u, ok := all_types.AllUsersInfo[user.ID]
 	if !ok {
 		return errors.New("Не удалось найти пользователя.")
 	}
 
-	all_types.AllUsersInfo[id].TimeLastAction = time.Now().Format(all_types.MyTimeFormat)
+	u.TimeLastAction = time.Now().Format(all_types.MyTimeFormat)
+	u.FirstName = user.FirstName
+	u.LastName = user.LastName
+	if user.UserName != "" {
+		u.UserName = "@"+user.UserName
+	}
 
 	return nil
 }

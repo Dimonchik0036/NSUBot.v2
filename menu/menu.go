@@ -85,7 +85,10 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 	command, argument := customers.DecomposeQuery(update.CallbackQuery.Data)
 
 	all_types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
-	loader.ReloadUserDate(update.CallbackQuery.From.ID)
+
+	if loader.ReloadUserDate(update.CallbackQuery.From) != nil {
+		all_types.Logger.Print("Не удалось найти пользователя")
+	}
 
 	switch command {
 	case tag_keyboard:
@@ -381,7 +384,10 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	}
 
 	all_types.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
-	loader.ReloadUserDate(update.Message.From.ID)
+
+	if loader.ReloadUserDate(update.Message.From) != nil {
+		all_types.Logger.Print("Не удалось найти пользователя")
+	}
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
 
@@ -507,7 +513,8 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/changeus <domain + id> - Изменяет подписку пользователю\n"+
 			"/activateg <domain> - Разрешает/запрещает парсинг группы\n"+
 			"/statg <domain> - Выводит статистику пользователей по этой группе\n"+
-			"/sendbyid <id + text> - Отправляет сообщение пользователю."))
+			"/sendbyid <id + text> - Отправляет сообщение пользователю\n" +
+			"/statsub - Отправляет количество пользователей, подписанных на новости бота"))
 		return
 	case "reset":
 		bot.Send(tgbotapi.NewMessage(where, "Выключаюсь."))
@@ -523,6 +530,16 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			os.Exit(0)
 		}()
 
+		return
+	case "statsub":
+		var count int
+		for _, u := range all_types.AllUsersInfo {
+			if u.PermissionToSend {
+				count++
+			}
+		}
+
+		bot.Send(tgbotapi.NewMessage(where, "Подписано на бота: "+fmt.Sprint(count)))
 		return
 	case "sendbyid":
 		sId, text := customers.DecomposeQuery(argument)

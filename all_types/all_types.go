@@ -145,7 +145,7 @@ func (s *Subscription) GetAndRefreshLastPosts() (message []string, err error) {
 		flag := true
 
 		for j := 0; j < len(*s.Posts); j++ {
-			if newPosts[i].Href == (*s.Posts)[j].Href {
+			if (newPosts[i].Href == (*s.Posts)[j].Href) || newPosts[i].Date <= (*s.Posts)[j].Date {
 				flag = false
 				break
 			}
