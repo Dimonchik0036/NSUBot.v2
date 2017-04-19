@@ -36,6 +36,7 @@ const (
 	UsersFilename         = "users_info.txt"
 	LabelsFilename        = "labels.txt"
 	SubscriptionsFilename = "users_subscriptions.txt"
+	FitNsuFilename        = "fitnsu.txt"
 )
 
 const (
@@ -93,6 +94,7 @@ type Subscription struct {
 	Name              string      `json:"name"`
 	ScreenName        string      `json:"screen_name"`
 	IsActive          bool        `json:"is_active"`
+	IsReady           bool        `json:"is_ready"` // Можно ли рассылать людям
 	UserSubscriptions map[int]int `json:"subscriptions"`
 	Posts             *[]Post     `json:"posts"`
 }
@@ -133,16 +135,23 @@ func (s *Subscription) GetAndRefreshLastPosts() (message []string, err error) {
 	}
 
 	if s.Posts == nil {
+		var p []Post
+
 		for i := 0; i < len(newPosts); i++ {
-			message = append(message, newPosts[i].String())
+			if newPosts[i].Date != 0 {
+				message = append(message, newPosts[i].String())
+				p = append(p, newPosts[i])
+			}
 		}
 
-		s.Posts = &newPosts
+		s.Posts = &p
 		return
 	}
 
+	var flag bool
+
 	for i := 0; i < len(newPosts); i++ {
-		flag := true
+		flag = true
 
 		for j := 0; j < len(*s.Posts); j++ {
 			if (newPosts[i].Href == (*s.Posts)[j].Href) || newPosts[i].Date <= (*s.Posts)[j].Date {
@@ -156,7 +165,9 @@ func (s *Subscription) GetAndRefreshLastPosts() (message []string, err error) {
 		}
 	}
 
-	s.Posts = &newPosts
+	if len(message) != 0 {
+		s.Posts = &newPosts
+	}
 
 	return
 }
@@ -173,6 +184,10 @@ func GetPosts(domain string, count int) (posts []Post, err error) {
 
 	for _, item := range *res.Items {
 		if item.MarkedAsAds != 0 {
+			continue
+		}
+
+		if item.Date == 0 {
 			continue
 		}
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -101,7 +100,7 @@ func GetWallJson(domain string, offset int, count int, filter string) (*Response
 	var ApiVK ApiVK
 	err = json.Unmarshal(b, &ApiVK)
 	if err != nil {
-		log.Fatal()
+		return nil, err
 	}
 
 	if ApiVK.Error != nil {

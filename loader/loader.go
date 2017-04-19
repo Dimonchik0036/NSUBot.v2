@@ -190,7 +190,7 @@ func ReloadUserDate(user *tgbotapi.User) error {
 	u.FirstName = user.FirstName
 	u.LastName = user.LastName
 	if user.UserName != "" {
-		u.UserName = "@"+user.UserName
+		u.UserName = "@" + user.UserName
 	}
 
 	return nil

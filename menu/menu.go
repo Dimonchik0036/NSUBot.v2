@@ -408,6 +408,8 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Наберите свой отзыв:"))
 
 		return
+	case "botnews":
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(all_types.News, update.Message.From.ID)))
 	case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
 	case "weather":
@@ -415,7 +417,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	case "start":
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
 			"Привет!\n\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, чтобы было проще возвращаться к меню.\n\nЕщё есть полезные советы /help и /faq.\n\n"+
-				"Если хочешь получать новости обновлений, то подпишись на рассылку через /menu » Подписки")
+				"Если хочешь получать новости обновлений, то подпишись на рассылку через /botnews")
 
 		msg.ReplyMarkup = MainMenu()
 
@@ -513,9 +515,30 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/changeus <domain + id> - Изменяет подписку пользователю\n"+
 			"/activateg <domain> - Разрешает/запрещает парсинг группы\n"+
 			"/statg <domain> - Выводит статистику пользователей по этой группе\n"+
-			"/sendbyid <id + text> - Отправляет сообщение пользователю\n" +
-			"/statsub - Отправляет количество пользователей, подписанных на новости бота"))
+			"/sendbyid <id + text> - Отправляет сообщение пользователю\n"+
+			"/statsub - Отправляет количество пользователей, подписанных на новости бота\n"+
+			"/addfit <href + title> - Добавляет раздел новостей\n"+
+			"/changefit <href + id> - Подписывает пользователя на обновления\n"+
+			"/delfit <href> - Удаляет группу фита\n"+
+			"/showfit - Показывает группы\n"+
+			"/fitactiv <href> - Активирует/деактивирует раздел\n"+
+			"/fitstat <href> - Показывает статистику раздела\n"+
+			"/activatesend <domain> - Рассылка для людей"))
 		return
+	case "changefit":
+		href, sId := customers.DecomposeQuery(argument)
+		id, err := strconv.Atoi(sId)
+		if err != nil {
+			bot.Send(tgbotapi.NewMessage(where, "Ошибка перевода числа"))
+			return
+		}
+
+		bot.Send(tgbotapi.NewMessage(where, subscriptions.ChangeUserFit(href, id)))
+	case "delfit":
+		bot.Send(tgbotapi.NewMessage(where, subscriptions.DeleteFitNews(argument)))
+	case "addfit":
+		href, title := customers.DecomposeQuery(argument)
+		bot.Send(tgbotapi.NewMessage(where, subscriptions.AddNewNewsList(href, title)))
 	case "reset":
 		bot.Send(tgbotapi.NewMessage(where, "Выключаюсь."))
 
@@ -526,6 +549,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			customers.UpdateUserLabels()
 			loader.UpdateUserInfo()
 			loader.UpdateUserSubscriptions()
+			subscriptions.RefreshFitNsuFile()
 
 			os.Exit(0)
 		}()
@@ -684,6 +708,8 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 		} else {
 			bot.Send(tgbotapi.NewMessage(where, "Выполнено"))
 		}
+
+		return
 	case "showgl":
 		g := subscriptions.ShowAllGroups()
 		var message string
@@ -692,6 +718,18 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 		}
 
 		bot.Send(tgbotapi.NewMessage(where, message))
+
+		return
+	case "showfit":
+		g := subscriptions.ShowAllFitNewsGroup()
+		var message string
+		for _, m := range g {
+			message += m + "\n"
+		}
+
+		bot.Send(tgbotapi.NewMessage(where, message))
+
+		return
 	case "changeus":
 		domain, sid := customers.DecomposeQuery(argument)
 		id, err := strconv.Atoi(sid)
@@ -702,14 +740,43 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 
 		message := subscriptions.ChangeGroupById(domain, id)
 		bot.Send(tgbotapi.NewMessage(where, message))
+
+		return
 	case "activateg":
 		bot.Send(tgbotapi.NewMessage(where, subscriptions.ChangeGroupActivity(argument)))
+		return
+	case "activatesend":
+		bot.Send(tgbotapi.NewMessage(where, subscriptions.GroupReady(argument)))
+		return
+	case "fitactiv":
+		bot.Send(tgbotapi.NewMessage(where, subscriptions.ChangeFitNewsActivity(argument)))
+		return
 	case "delgroup":
 		bot.Send(tgbotapi.NewMessage(where, subscriptions.DeleteGroup(argument)))
+		return
 	case "deluser":
 		bot.Send(tgbotapi.NewMessage(where, customers.DeleteUser(argument)))
+		return
 	case "statg":
 		m := subscriptions.ShowAllUsersGroup(argument)
+		var count int
+		var message string
+
+		for _, v := range m {
+			count++
+			message += v + "\n"
+
+			if (count % 20) == 0 {
+				bot.Send(tgbotapi.NewMessage(where, message))
+				message = ""
+			}
+		}
+
+		bot.Send(tgbotapi.NewMessage(where, message+"\nВсего пользователей: "+strconv.Itoa(count)))
+
+		return
+	case "fitstat":
+		m := subscriptions.ShowAllFitUsersGroup(argument)
 		var count int
 		var message string
 
@@ -906,7 +973,8 @@ func GetHelp(arg string) (text string) {
 			"Если вы интересуетесь расписанием занятий, то вам будет удобно добавить группы в избранное (далее метки), " +
 			"это позволит вызывать расписание без особых усилий.\n" +
 			"Раздел управления меток находится /menu » Расписание » Управление метками.\n\n" +
-			"Ответы на дополнительные вопросы можно получить через /faq."
+			"Ответы на дополнительные вопросы можно получить через /faq.\n\n" +
+			"Подписаться на новости об обвновлениях бота можно через /botnews или в /menu » Подписки"
 	}
 
 	return text

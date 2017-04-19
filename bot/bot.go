@@ -97,6 +97,11 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 		all_types.Logger.Print(err)
 	}
 
+	err = subscriptions.LoadFitNsuFile()
+	if err != nil {
+		all_types.Logger.Print(err)
+	}
+
 	_, err = bot.Send(tgbotapi.NewMessage(all_types.MyId, "Я перезагрузился."))
 	if err != nil {
 		all_types.Logger.Print("Не смог отправить весточку повелителю.", err)
@@ -128,6 +133,11 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 			if err != nil {
 				all_types.Logger.Print(err)
 			}
+
+			err = subscriptions.RefreshFitNsuFile()
+			if err != nil {
+				all_types.Logger.Print(err)
+			}
 		}
 	}()
 
@@ -140,26 +150,63 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 
 				m, err := v.GetAndRefreshLastPosts()
 				if err != nil {
-					log.Println(err)
-					log.Println(m)
+					all_types.Logger.Print(err)
 					continue
 				}
 
 				if len(m) > 0 {
-					for i, ok := range v.UserSubscriptions {
+					if v.IsReady {
+						for i, ok := range v.UserSubscriptions {
+							if ok != 0 {
+								for _, post := range m {
+									if len(post) > 4500 {
+										post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
+									}
+
+									bot.Send(tgbotapi.NewMessage(int64(i), v.Name+"\n"+post))
+								}
+							}
+						}
+					} else {
+						for _, post := range m {
+							if len(post) > 4500 {
+								post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
+							}
+
+							bot.Send(tgbotapi.NewMessage(all_types.MyId, v.Name+"\n"+post))
+						}
+
+						bot.Send(tgbotapi.NewMessage(all_types.MyId, "Для меня любимого"))
+					}
+				}
+
+				time.Sleep(time.Second)
+			}
+
+			for _, l := range subscriptions.FitNsuNews {
+				if !l.IsActive {
+					continue
+				}
+
+				m, err := l.GetAndRefreshLastNews()
+				if err != nil {
+					all_types.Logger.Print(err)
+					continue
+				}
+
+				if len(m) > 0 {
+					for i, ok := range l.Users {
 						if ok != 0 {
 							for _, post := range m {
 								if len(post) > 4500 {
 									post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
 								}
 
-								bot.Send(tgbotapi.NewMessage(int64(i), v.Name+"\n"+post))
+								bot.Send(tgbotapi.NewMessage(int64(i), l.MainTitle+"\n\n"+post))
 							}
 						}
 					}
 				}
-
-				time.Sleep(time.Second)
 			}
 
 			time.Sleep(all_types.ParseDelay)

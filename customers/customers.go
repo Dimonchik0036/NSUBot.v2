@@ -59,6 +59,7 @@ func UpdateUserLabels() error {
 
 		out, err := json.Marshal(&user)
 		if err != nil {
+			all_types.Logger.Print("UpdateUserLabels", err)
 			continue
 		}
 
@@ -103,7 +104,7 @@ func DeleteUserLabels(id int) string {
 }
 
 func DecomposeQuery(words string) (command string, arguments string) {
-	labelReg, err := regexp.Compile("[^ ]*")
+	labelReg, err := regexp.Compile("[^ ]+")
 	if err != nil {
 		return "", ""
 	}
