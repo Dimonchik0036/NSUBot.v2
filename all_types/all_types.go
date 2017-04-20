@@ -23,12 +23,27 @@ const (
 	NsuHelp   = "nsuhelp"
 	NsuLove   = "lovensu"
 	NsuSecret = "secretnsu"
-	News      = "mynews"
+	NewsBot   = "mynews"
+
+	NewsLimit = "?limit=5"
+
+	News_announc       = "/news/announc"
+	News_news          = "/news/news"
+	News_konf          = "/news/konf"
+	News_conc          = "/news/conc"
+	News_admin_prikazy = "/news/administrativnye-prikazy"
+
+	News_chairs  = "/chairs"
+	News_anksi   = "/ksi/anksi"
+	News_ankks   = "/kks/ankks"
+	News_koinews = "/koi/koinews"
+	News_kpvnews = "/kpv/kpvnews"
+	News_kktnews = "/k-kt/kktnews"
 
 	NsuFit = "nsufit"
 
 	DelayUpdate   = time.Minute * 7
-	ParseDelay    = time.Second * 31
+	ParseDelay    = time.Second * 32
 	ScheduleDelay = time.Minute * 5
 )
 

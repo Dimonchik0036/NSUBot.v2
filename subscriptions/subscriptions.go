@@ -32,19 +32,7 @@ type NewsPage struct {
 }
 
 func (p *NewsPage) String() string {
-	return p.Title + "\n" + p.Date + "\n" + p.Href
-}
-
-func (p *NewsPage) UpdatePage() (err error) {
-	_, err = GetFitPage(p.Href)
-	if err != nil {
-		return
-	}
-
-	var page Page
-	page.Title = p.Title
-
-	return
+	return "http://fit.nsu.ru/" + p.Href + "\n" + "Дата: " + p.Date
 }
 
 type Page struct {
@@ -150,7 +138,7 @@ func (l *NewsList) GetAndRefreshLastNews() (message []string, err error) {
 
 	if l.Pages == nil {
 		for i := 0; i < len(newPage); i++ {
-			message = append(message, newPage[i].Title+"\n\n"+"http://fit.nsu.ru/"+newPage[i].Href+"\n\n"+"Дата: "+newPage[i].Date)
+			message = append(message, newPage[i].String())
 		}
 
 		l.Pages = &newPage
@@ -168,7 +156,7 @@ func (l *NewsList) GetAndRefreshLastNews() (message []string, err error) {
 		}
 
 		if flag {
-			message = append(message, newPage[i].Title+"\n\n"+"http://fit.nsu.ru/"+newPage[i].Href+"\n\n"+"Дата: "+newPage[i].Date)
+			message = append(message, newPage[i].String())
 		}
 	}
 
@@ -237,7 +225,7 @@ func LoadFitNsuFile() (err error) {
 }
 
 func GetNewPosts(href string) (newPages []NewsPage, err error) {
-	body, err := GetFitPage(href)
+	body, err := GetFitPage(href, all_types.NewsLimit)
 	if err != nil {
 		return
 	}
@@ -263,10 +251,17 @@ func ParseTable(text string) (np []NewsPage, err error) {
 		return
 	}
 
+	for ; (len(endInd) > 0) && (endInd[0][0] < beginInd[0][0]); endInd = endInd[1:] {
+	}
+	if len(endInd) != len(beginInd) {
+		return np, errors.New("end > begin")
+	}
+
 	for i := range beginInd {
 		if i == all_types.MaxCountPosts {
 			break
 		}
+
 		tableBlock := text[beginInd[i][1]:endInd[i][0]]
 
 		bgInd, eInd, err := mymodule.SearchBeginEnd(tableBlock, "<a href=\"/.*>", "</a>", 1)
@@ -313,8 +308,8 @@ func ParseTable(text string) (np []NewsPage, err error) {
 	Объявления кафедры компьютерных технологий /chairs/k-kt/kktnews
 */
 
-func GetFitPage(href string) (string, error) {
-	res, err := http.Get("http://fit.nsu.ru/" + href)
+func GetFitPage(href string, postfix string) (string, error) {
+	res, err := http.Get("http://fit.nsu.ru/" + href + postfix)
 	if err != nil {
 		return "", err
 	}
@@ -333,23 +328,19 @@ func GetFitPage(href string) (string, error) {
 	return text, err
 }
 
-func ChangeSubscriptions(argument string, id int) string {
-	switch argument {
-	case all_types.News:
-		u, ok := all_types.AllUsersInfo[id]
-		if !ok {
-			return "Ошибка обработки группы, сообщите об этом /feedback"
-		}
+func ChangeBotSubscriptions(id int) string {
 
-		if u.PermissionToSend {
-			u.PermissionToSend = false
-			return "Вы были отписаны от рассылки обновлений"
-		} else {
-			u.PermissionToSend = true
-			return "Вы были подписаны на рассылку обновлений"
-		}
-	default:
-		return ChangeGroupByDomain(argument, id)
+	u, ok := all_types.AllUsersInfo[id]
+	if !ok {
+		return "Ошибка обработки группы, сообщите об этом /feedback"
+	}
+
+	if u.PermissionToSend {
+		u.PermissionToSend = false
+		return "Вы были отписаны от рассылки обновлений"
+	} else {
+		u.PermissionToSend = true
+		return "Вы были подписаны на рассылку обновлений"
 	}
 }
 

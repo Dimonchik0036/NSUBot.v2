@@ -46,6 +46,7 @@ const (
 	tag_day                = "tag_day"
 	tag_keyboard           = "keyboard"
 	tag_user_subscriptions = "user_subscriptions"
+	tag_fit                = "menu_fit"
 	set_different_group    = "set_different_group"
 	different_day          = "different_day"
 	today                  = "today"
@@ -86,13 +87,38 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 	all_types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
 
-	if loader.ReloadUserDate(update.CallbackQuery.From) != nil {
+	if loader.ReloadUserDate(bot, *update.CallbackQuery.From) != nil {
 		all_types.Logger.Print("Не удалось найти пользователя")
 	}
 
 	switch command {
+	case tag_fit:
+		var m tgbotapi.InlineKeyboardMarkup
+
+		if argument != "" {
+			firstPar, secondPar := customers.DecomposeQuery(argument)
+			if firstPar == all_types.News_chairs {
+				if secondPar != "" {
+					subscriptions.ChangeUserFit(firstPar+secondPar, update.CallbackQuery.From.ID)
+				}
+
+				m = UniteMarkup(ChairsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_fit, true))
+			} else {
+				subscriptions.ChangeUserFit(argument, update.CallbackQuery.From.ID)
+
+				m = UniteMarkup(FitMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
+			}
+		} else {
+			m = UniteMarkup(FitMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
+		}
+
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на раздел, если хотите подписаться на рассылку")
+		msg.ReplyMarkup = &m
+
+		bot.Send(msg)
+		return
 	case tag_keyboard:
-		text := "Не удалось активировать квалиатуру, попробуйсте чуть позже."
+		text := "Не удалось активировать квалиатуру, попробуйте чуть позже."
 		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
 
 		markup, err := MainKeyboard()
@@ -128,11 +154,13 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 		bot.Send(msg)
 	case tag_user_subscriptions:
-		subscriptions.ChangeSubscriptions(argument, update.CallbackQuery.From.ID)
+		if argument != "" {
+			subscriptions.ChangeGroupByDomain(argument, update.CallbackQuery.From.ID)
+		}
 
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
 
-		m := UniteMarkup(SubscriptionsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_main, false))
+		m := UniteMarkup(VkGroupMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
@@ -262,6 +290,10 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 		bot.Send(msg)
 	case tag_subscriptions:
+		if argument == all_types.NewsBot {
+			subscriptions.ChangeBotSubscriptions(update.CallbackQuery.From.ID)
+		}
+
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
 
 		m := UniteMarkup(SubscriptionsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_main, false))
@@ -385,13 +417,16 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 
 	all_types.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
 
-	if loader.ReloadUserDate(update.Message.From) != nil {
+	if loader.ReloadUserDate(bot, *update.Message.From) != nil {
 		all_types.Logger.Print("Не удалось найти пользователя")
 	}
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
 
 	switch command {
+	case "cansel":
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Отменил все свои дела.\nZzzz..."))
+		return
 	case feedback:
 		if argument != "" {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за отзыв!")
@@ -409,15 +444,16 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 
 		return
 	case "botnews":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeSubscriptions(all_types.News, update.Message.From.ID)))
+		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeBotSubscriptions(update.Message.From.ID)))
 	case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
 	case "weather":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather))
 	case "start":
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			"Привет!\n\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, чтобы было проще возвращаться к меню.\n\nЕщё есть полезные советы /help и /faq.\n\n"+
-				"Если хочешь получать новости обновлений, то подпишись на рассылку через /botnews")
+			"Привет!\n\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, "+
+				"чтобы было проще возвращаться к меню.\n\n"+
+				"Ещё есть полезные советы /help и /faq.\n\n")
 
 		msg.ReplyMarkup = MainMenu()
 
@@ -507,6 +543,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/sendmelog <data | users | labels | sub> - Присылает файл с логами\n"+
 			"/sendall <текст> - Делает рассылку текста\n"+
 			"/sendallall <текст> - Делает рассылку текста абсолютно всем, игнорируя ограничение\n"+
+			"/resetallusersub <YES> - Выставляет всем пользователям флаг на сообщения\n"+
 			"/reset - Завершает текущую сессию бота\n"+
 			"/addnewgs <domain> - Добавляет группу к парсу\n"+
 			"/delgroup <domain> - Удаляет группу из списка парсинга\n"+
@@ -524,6 +561,17 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/fitactiv <href> - Активирует/деактивирует раздел\n"+
 			"/fitstat <href> - Показывает статистику раздела\n"+
 			"/activatesend <domain> - Рассылка для людей"))
+		return
+	case "resetallusersub":
+		if argument == "YES" {
+			for _, u := range all_types.AllUsersInfo {
+				u.PermissionToSend = true
+			}
+
+			bot.Send(tgbotapi.NewMessage(where, "Готово, спамер"))
+		} else {
+			bot.Send(tgbotapi.NewMessage(where, "Будь осторожен"))
+		}
 		return
 	case "changefit":
 		href, sId := customers.DecomposeQuery(argument)
@@ -550,6 +598,8 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			loader.UpdateUserInfo()
 			loader.UpdateUserSubscriptions()
 			subscriptions.RefreshFitNsuFile()
+
+			bot.Send(tgbotapi.NewMessage(where, "Вырубай проц"))
 
 			os.Exit(0)
 		}()
@@ -714,7 +764,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 		g := subscriptions.ShowAllGroups()
 		var message string
 		for _, m := range g {
-			message += m + "\n"
+			message += m + "\n\n"
 		}
 
 		bot.Send(tgbotapi.NewMessage(where, message))
@@ -724,7 +774,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 		g := subscriptions.ShowAllFitNewsGroup()
 		var message string
 		for _, m := range g {
-			message += m + "\n"
+			message += m + "\n\n"
 		}
 
 		bot.Send(tgbotapi.NewMessage(where, message))
@@ -817,6 +867,36 @@ func UniteMarkup(markups ...tgbotapi.InlineKeyboardMarkup) (markup tgbotapi.Inli
 		}
 	}
 
+	return
+}
+
+func ChairsMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
+	markup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_chairs+all_types.News_anksi, id)+"Кафедра систем информатики", tag_fit+" "+all_types.News_chairs+" "+all_types.News_anksi)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_chairs+all_types.News_ankks, id)+"Кафедра компьютерных систем", tag_fit+" "+all_types.News_chairs+" "+all_types.News_ankks)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_chairs+all_types.News_koinews, id)+"Кафедра общей информатики", tag_fit+" "+all_types.News_chairs+" "+all_types.News_koinews)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_chairs+all_types.News_kpvnews, id)+"Кафедра параллельных вычислений", tag_fit+" "+all_types.News_chairs+" "+all_types.News_kpvnews)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_chairs+all_types.News_kktnews, id)+"Кафедра компьютерных технологий", tag_fit+" "+all_types.News_chairs+" "+all_types.News_kktnews)))
+	return
+}
+
+func FitMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
+	markup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Кафедры", tag_fit+" "+all_types.News_chairs)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_announc, id)+"Объявления", tag_fit+" "+all_types.News_announc),
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_news, id)+"События", tag_fit+" "+all_types.News_news)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_konf, id)+"Конференции", tag_fit+" "+all_types.News_konf),
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_conc, id)+"Конкурсы", tag_fit+" "+all_types.News_conc)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckFit(all_types.News_admin_prikazy, id)+"Административные приказы", tag_fit+" "+all_types.News_admin_prikazy)))
 	return
 }
 
@@ -927,7 +1007,7 @@ func CheckSub(domain string, id int) string {
 	if u == 0 {
 		return ""
 	} else {
-		return "☑️"
+		return "☑️ "
 	}
 }
 
@@ -938,22 +1018,49 @@ func CheckNews(id int) string {
 	}
 
 	if u.PermissionToSend {
-		return "☑️"
+		return "☑️ "
 	} else {
 		return ""
 	}
 }
 
-func SubscriptionsMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
+func CheckFit(href string, id int) string {
+	l, ok := subscriptions.FitNsuNews[href]
+	if !ok {
+		return "⚠️"
+	}
+
+	u, ok := l.Users[id]
+	if !ok {
+		return ""
+	}
+
+	if u == 0 {
+		return ""
+	} else {
+		return "☑️ "
+	}
+}
+
+func VkGroupMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
 	markup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuSecret, id)+"Подслушано НГУ", tag_user_subscriptions+" "+all_types.NsuSecret)),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuLove, id)+"Признавашки НГУ", tag_user_subscriptions+" "+all_types.NsuLove)),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)),
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)))
+	return
+}
+
+func SubscriptionsMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
+	markup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(CheckNews(id)+"Новости об обновлении бота", tag_user_subscriptions+" "+all_types.News)))
+			tgbotapi.NewInlineKeyboardButtonData("Группы VK", tag_user_subscriptions)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Новости ФИТ", tag_fit)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckNews(id)+"Новости об обновлении бота", tag_subscriptions+" "+all_types.NewsBot)))
 	return
 }
 
@@ -966,7 +1073,7 @@ func GetHelp(arg string) (text string) {
 	case "secret":
 		text = "ACHTUNG! Использование этих команд запрещено на территории РФ. Автор ответственности не несёт, используйте на свой страх и риск. \n\n" +
 			"/joke - Показывает бородатый анекдот.\n" +
-			"/post <ID группы в VK> - Показывает закреплённый и 4 обычных поста из этой группы VK.\n\n" +
+			//"/post <ID группы в VK> - Показывает закреплённый и 4 обычных поста из этой группы VK.\n\n" +
 			"/creator - Используешь » ? » PROFIT!"
 	default:
 		text = "Подсказки по использованию Помощника:\n\n" +

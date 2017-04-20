@@ -111,6 +111,19 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 	CheckDefaultGroup(bot, all_types.NsuSecret)
 	CheckDefaultGroup(bot, all_types.NsuLove)
 
+	CheckDefaultFit(bot, all_types.News_announc, "Объявления")
+	CheckDefaultFit(bot, all_types.News_konf, "Конференции")
+	CheckDefaultFit(bot, all_types.News_news, "События")
+	CheckDefaultFit(bot, all_types.News_conc, "Конкурсы")
+
+	CheckDefaultFit(bot, all_types.News_admin_prikazy, "Административные приказы")
+
+	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_anksi, "Кафедра систем информатики")
+	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_ankks, "Кафедра компьютерных систем")
+	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_koinews, "Кафедра общей информатики")
+	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_kpvnews, "Кафедра параллельных вычислений")
+	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_kktnews, "Кафедра компьютерных технологий")
+
 	go func() {
 		for {
 			time.Sleep(all_types.DelayUpdate)
@@ -202,7 +215,7 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 									post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
 								}
 
-								bot.Send(tgbotapi.NewMessage(int64(i), l.MainTitle+"\n\n"+post))
+								bot.Send(tgbotapi.NewMessage(int64(i), l.MainTitle+"\n"+post))
 							}
 						}
 					}
@@ -232,6 +245,21 @@ func CheckDefaultGroup(bot *tgbotapi.BotAPI, domain string) {
 		if !s.IsActive {
 			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Бездействует: "+domain))
 			all_types.Logger.Print("Бездействует: " + domain)
+		}
+	}
+}
+
+func CheckDefaultFit(bot *tgbotapi.BotAPI, href string, title string) {
+	s, ok := subscriptions.FitNsuNews[href]
+	if !ok {
+		answer := subscriptions.AddNewNewsList(href, title)
+
+		bot.Send(tgbotapi.NewMessage(all_types.MyId, answer))
+		all_types.Logger.Print(answer)
+	} else {
+		if !s.IsActive {
+			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Бездействует: "+href))
+			all_types.Logger.Print("Бездействует: " + href)
 		}
 	}
 }
@@ -270,7 +298,7 @@ func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 		}
 	}
 
-	loader.NewUserInfo(bot, update)
+	loader.NewUserInfo(bot, *update.Message.From)
 
 	return nil
 }
