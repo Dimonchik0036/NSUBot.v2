@@ -1049,7 +1049,9 @@ func VkGroupMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuLove, id)+"Признавашки НГУ", tag_user_subscriptions+" "+all_types.NsuLove)),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)))
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.Nsu24, id)+"Официальная группа НГУ", tag_user_subscriptions+" "+all_types.Nsu24)))
 	return
 }
 

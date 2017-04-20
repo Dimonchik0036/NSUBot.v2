@@ -110,6 +110,7 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 	CheckDefaultGroup(bot, all_types.NsuHelp)
 	CheckDefaultGroup(bot, all_types.NsuSecret)
 	CheckDefaultGroup(bot, all_types.NsuLove)
+	CheckDefaultGroup(bot, all_types.Nsu24)
 
 	CheckDefaultFit(bot, all_types.News_announc, "Объявления")
 	CheckDefaultFit(bot, all_types.News_konf, "Конференции")
