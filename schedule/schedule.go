@@ -201,14 +201,14 @@ func getGroupSchedule(name string, group string) error {
 
 	var message [7]string
 	for number := 0; number < 7; number++ {
-		message[number] = title + "\n" +
-			"1 П. 09:00: " + string(tableDay[0][number]) + "\n" +
-			"2 П. 10:50: " + string(tableDay[1][number]) + "\n" +
-			"3 П. 12:40: " + string(tableDay[2][number]) + "\n" +
-			"4 П. 14:30: " + string(tableDay[3][number]) + "\n" +
-			"5 П. 16:20: " + string(tableDay[4][number]) + "\n" +
-			"6 П. 18:10: " + string(tableDay[5][number]) + "\n" +
-			"7 П. 20:00: " + string(tableDay[6][number]) + "\n"
+		message[number] = "<b>" + title + "</b>\n" +
+			"1П.   <b>9:00:</b> " + string(tableDay[0][number]) + "\n" +
+			"2П. <b>10:50:</b> " + string(tableDay[1][number]) + "\n" +
+			"3П. <b>12:40:</b> " + string(tableDay[2][number]) + "\n" +
+			"4П. <b>14:30:</b> " + string(tableDay[3][number]) + "\n" +
+			"5П. <b>16:20:</b> " + string(tableDay[4][number]) + "\n" +
+			"6П. <b>18:10:</b> " + string(tableDay[5][number]) + "\n" +
+			"7П. <b>20:00:</b> " + string(tableDay[6][number]) + "\n"
 	}
 
 	all_types.AllSchedule[groupTitle] = message
@@ -390,7 +390,7 @@ func PrintSchedule(group string, offset int, id int, onlyGroup bool) (string, bo
 		number = 6
 	}
 
-	return textDay[(number+offset)%7] + "\n" + v[(number+offset)%7], true
+	return "<b>" + textDay[(number+offset)%7] + "</b>\n" + v[(number+offset)%7], true
 }
 
 func GetWeek(group string) (days [7]string) {

@@ -1,3 +1,4 @@
 .idea/
 Local*/
 *.txt
+test/test.go

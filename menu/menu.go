@@ -222,7 +222,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		m := RowButtonBack(tag_schedule_day+" "+day, true)
 
 		msg.ReplyMarkup = &m
-
+		msg.ParseMode = "HTML"
 		bot.Send(msg)
 	case different_day:
 		queue[update.CallbackQuery.From.ID] = queueType{tag_day, argument + " ", ""}
@@ -488,7 +488,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 
 		text, ok := schedule.PrintSchedule(group, offset, update.Message.From.ID, true)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-
+		msg.ParseMode = "HTML"
 		if !ok {
 			queue[update.Message.From.ID] = queueType{tag_day, day + " ", ""}
 		} else {
@@ -627,10 +627,14 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			bot.Send(tgbotapi.NewMessage(where, "Текст отсутствует"))
 			return
 		}
+		m := tgbotapi.NewMessage(int64(id), text)
+		m.ParseMode = "HTML"
 
-		_, err = bot.Send(tgbotapi.NewMessage(int64(id), text))
+		_, err = bot.Send(m)
 		if err != nil {
 			bot.Send(tgbotapi.NewMessage(where, "При отправке произошла ошибка: "+err.Error()))
+		} else {
+			bot.Send(tgbotapi.NewMessage(where, "Успешно"))
 		}
 
 		return
@@ -677,8 +681,10 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 				if !u.PermissionToSend {
 					continue
 				}
+				m := tgbotapi.NewMessage(int64(i), argument+"\n\nВы всегда можете отписаться от получения информации обновлений через /botnews")
+				m.ParseMode = "HTML"
 
-				_, err := bot.Send(tgbotapi.NewMessage(int64(i), argument+"\n\nВы всегда можете отписаться от получения рассылки через /menu » Подписки"))
+				_, err := bot.Send(m)
 				if err != nil {
 					all_types.Logger.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
 				}
@@ -691,7 +697,10 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			all_types.Logger.Print("Рассылаю всем: '" + argument + "'")
 
 			for i := range all_types.AllUsersInfo {
-				_, err := bot.Send(tgbotapi.NewMessage(int64(i), argument))
+				m := tgbotapi.NewMessage(int64(i), argument)
+				m.ParseMode = "HTML"
+
+				_, err := bot.Send(m)
 				if err != nil {
 					all_types.Logger.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
 				}

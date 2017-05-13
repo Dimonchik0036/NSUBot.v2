@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 var FitNsuNews = make(map[string]*NewsList)
@@ -32,7 +33,7 @@ type NewsPage struct {
 }
 
 func (p *NewsPage) String() string {
-	return "http://fit.nsu.ru/" + p.Href + "\n" + "Дата: " + p.Date
+	return "http://fit.nsu.ru" + p.Href + "\n" + "Дата: " + p.Date
 }
 
 type Page struct {
@@ -149,7 +150,7 @@ func (l *NewsList) GetAndRefreshLastNews() (message []string, err error) {
 		flag := true
 
 		for j := 0; j < len(*l.Pages); j++ {
-			if (newPage[i].Href == (*l.Pages)[j].Href) || newPage[i].Date <= (*l.Pages)[j].Date {
+			if (newPage[i].Href == (*l.Pages)[j].Href) || timeParse(newPage[i].Date) < timeParse((*l.Pages)[j].Date) {
 				flag = false
 				break
 			}
@@ -163,6 +164,29 @@ func (l *NewsList) GetAndRefreshLastNews() (message []string, err error) {
 	l.Pages = &newPage
 
 	return
+}
+
+func timeParse(date string) int {
+	if len(date) != 8 {
+		return 0
+	}
+
+	day, err := strconv.Atoi(date[0:2])
+	if err != nil {
+		return 0
+	}
+
+	month, err := strconv.Atoi(date[3:5])
+	if err != nil {
+		return 0
+	}
+
+	year, err := strconv.Atoi(date[6:8])
+	if err != nil {
+		return 0
+	}
+
+	return day + 100*month + 10000*year
 }
 
 func AddNewNewsList(href string, title string) (answer string) {
