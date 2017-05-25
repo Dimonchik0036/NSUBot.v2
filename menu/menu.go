@@ -247,7 +247,9 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		days := schedule.GetWeek(g.MyGroup)
 		if len(days) > 0 {
 			for i := 0; i < 6; i++ {
-				bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, days[i]))
+				m := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, days[i])
+				m.ParseMode = "HTML"
+				bot.Send(m)
 			}
 
 			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Готово")
@@ -1059,6 +1061,8 @@ func VkGroupMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
 			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuLove, id)+"Признавашки НГУ", tag_user_subscriptions+" "+all_types.NsuLove)),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuHelp, id)+"Помогу в НГУ", tag_user_subscriptions+" "+all_types.NsuHelp)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.NsuTypical, id)+"Типичный НГУ*", tag_user_subscriptions+" "+all_types.NsuTypical)),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(CheckSub(all_types.Nsu24, id)+"Официальная группа НГУ", tag_user_subscriptions+" "+all_types.Nsu24)))
 	return

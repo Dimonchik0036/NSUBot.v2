@@ -20,11 +20,12 @@ var Logger *log.Logger
 var LoggerFilename string = time.Now().Format("2006-01-02T15-04") + ".txt"
 
 const (
-	Nsu24     = "nsu24"
-	NsuHelp   = "nsuhelp"
-	NsuLove   = "lovensu"
-	NsuSecret = "secretnsu"
-	NewsBot   = "mynews"
+	Nsu24      = "nsu24"
+	NsuHelp    = "nsuhelp"
+	NsuLove    = "lovensu"
+	NsuSecret  = "secretnsu"
+	NewsBot    = "mynews"
+	NsuTypical = "typical_nsu"
 
 	NewsLimit = "?limit=5"
 
