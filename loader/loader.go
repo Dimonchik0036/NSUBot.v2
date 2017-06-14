@@ -149,12 +149,9 @@ func UpdateUserInfo() error {
 	return err
 }
 
-// NewUserInfo Возвращает строку с новым пользователем
-func NewUserInfo(bot *tgbotapi.BotAPI, user tgbotapi.User) {
+// RefreshUserInfo Возвращает строку с новым пользователем
+func RefreshUserInfo(bot *tgbotapi.BotAPI, user tgbotapi.User) {
 	_, ok := all_types.AllUsersInfo[user.ID]
-	if ok {
-		return
-	}
 
 	timeNow := time.Now().Format(all_types.MyTimeFormat)
 
@@ -173,13 +170,15 @@ func NewUserInfo(bot *tgbotapi.BotAPI, user tgbotapi.User) {
 
 	all_types.AllUsersInfo[u.ID] = &u
 
-	bot.Send(tgbotapi.NewMessage(all_types.MyId, "Новый пользователь!\n"+u.String()))
+	if !ok {
+		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Новый пользователь!\n"+u.String()))
+	}
 }
 
 func ReloadUserDate(bot *tgbotapi.BotAPI, user tgbotapi.User) error {
 	u, ok := all_types.AllUsersInfo[user.ID]
 	if !ok {
-		NewUserInfo(bot, user)
+		RefreshUserInfo(bot, user)
 		return errors.New("Не удалось найти пользователя.")
 	}
 

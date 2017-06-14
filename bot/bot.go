@@ -2,10 +2,9 @@ package main
 
 import (
 	"TelegramBot/all_types"
-	"TelegramBot/customers"
+	/*"TelegramBot/customers"*/
 	"TelegramBot/loader"
 	"TelegramBot/menu"
-	"TelegramBot/schedule"
 	"TelegramBot/subscriptions"
 	"TelegramBot/weather"
 	"fmt"
@@ -21,7 +20,7 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 		all_types.Logger.Fatal("Бот в отпуске: ", err)
 	}
 
-	info, err := schedule.GetAllSchedule("GK")
+	/*info, err := schedule.GetAllSchedule("GK")
 	if err != nil {
 		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Всё плохо с GK"))
 		all_types.Logger.Fatal("GK")
@@ -59,7 +58,7 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 
 			time.Sleep(all_types.ScheduleDelay)
 		}
-	}()
+	}()*/
 
 	go func() {
 		for {
@@ -82,15 +81,15 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 		all_types.Logger.Print(err)
 	}
 
-	err = loader.LoadUserGroup()
+	/*err = loader.LoadUserGroup()
 	if err != nil {
 		all_types.Logger.Print(err)
-	}
+	}*/
 
-	err = loader.LoadSchedule()
+	/*err = loader.LoadSchedule()
 	if err != nil {
 		all_types.Logger.Print(err)
-	}
+	}*/
 
 	err = loader.LoadUsersSubscriptions()
 	if err != nil {
@@ -139,10 +138,10 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 				all_types.Logger.Print(err)
 			}
 
-			err = customers.UpdateUserLabels()
+			/*err = customers.UpdateUserLabels()
 			if err != nil {
 				all_types.Logger.Print(err)
-			}
+			}*/
 
 			err = loader.UpdateUserSubscriptions()
 			if err != nil {
@@ -165,7 +164,7 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 
 				m, err := v.GetAndRefreshLastPosts()
 				if err != nil {
-					all_types.Logger.Print(err)
+					all_types.Logger.Print("vk error: ", err)
 					continue
 				}
 
@@ -283,6 +282,11 @@ func messageLog(update tgbotapi.Update) {
 }
 
 func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
+	if update.CallbackQuery != nil {
+		loader.RefreshUserInfo(bot, *update.CallbackQuery.From)
+		return nil
+	}
+
 	if update.Message == nil {
 		return nil
 	}
@@ -300,7 +304,7 @@ func processingUser(bot *tgbotapi.BotAPI, update tgbotapi.Update) error {
 		}
 	}
 
-	loader.NewUserInfo(bot, *update.Message.From)
+	loader.RefreshUserInfo(bot, *update.Message.From)
 
 	return nil
 }
