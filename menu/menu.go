@@ -5,7 +5,7 @@ import (
 	"TelegramBot/customers"
 	"TelegramBot/jokes"
 	"TelegramBot/loader"
-	"TelegramBot/schedule"
+	/*"TelegramBot/schedule"*/
 	"TelegramBot/subscriptions"
 	"TelegramBot/weather"
 	"fmt"
@@ -87,9 +87,9 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 	all_types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
 
-	if loader.ReloadUserDate(bot, *update.CallbackQuery.From) != nil {
+	/*if loader.ReloadUserDate(bot, *update.CallbackQuery.From) != nil {
 		all_types.Logger.Print("Не удалось найти пользователя")
-	}
+	}*/
 
 	switch command {
 	case tag_fit:
@@ -171,7 +171,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-	case tag_labels:
+	/*case tag_labels:
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Управление метками")
 		m := UniteMarkup(LabelsMenu(), RowButtonBack(tag_schedule, true))
 		msg.ReplyMarkup = &m
@@ -262,7 +262,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-		return
+		return*/
 	case tag_main:
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Главное меню")
 
@@ -284,13 +284,13 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-	case tag_schedule:
+	/*case tag_schedule:
 		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Расписание")
 
 		m := UniteMarkup(ScheduleMenu(), RowButtonBack(tag_main, false))
 		msg.ReplyMarkup = &m
 
-		bot.Send(msg)
+		bot.Send(msg)*/
 	case tag_subscriptions:
 		if argument == all_types.NewsBot {
 			subscriptions.ChangeBotSubscriptions(update.CallbackQuery.From.ID)
@@ -302,7 +302,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 		msg.ReplyMarkup = &m
 
 		bot.Send(msg)
-	case set_new_group:
+	/*case set_new_group:
 		text, markup := AddNewGroup(argument, tag_labels, update.CallbackQuery.From.ID, "")
 		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
 
@@ -319,7 +319,7 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 			msg.ReplyMarkup = markup
 		}
 
-		bot.Send(msg)
+		bot.Send(msg)*/
 	default:
 		msg := tgbotapi.NewEditMessageText(
 			update.CallbackQuery.Message.Chat.ID,
@@ -405,7 +405,7 @@ func StartDeleteLabel(argument string, id int) (text string, markup tgbotapi.Inl
 func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error) {
 	var command string
 	var argument string
-	var button string
+	/*var button string*/
 
 	if update.Message.IsCommand() {
 		command = update.Message.Command()
@@ -414,14 +414,14 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		q := queue[update.Message.From.ID]
 		command = q.command
 		argument = q.argument + update.Message.Text
-		button = q.button
+		/*button = q.button*/
 	}
 
 	all_types.Logger.Print("[", update.Message.From.ID, "] @"+update.Message.From.UserName+" "+update.Message.From.FirstName+" "+update.Message.From.LastName+", Команда: "+command, " | "+argument)
 
-	if loader.ReloadUserDate(bot, *update.Message.From) != nil {
+	/*if loader.ReloadUserDate(bot, *update.Message.From) != nil {
 		all_types.Logger.Print("Не удалось найти пользователя")
-	}
+	}*/
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
 
@@ -484,7 +484,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 		msg.ReplyMarkup = MainMenu()
 
 		bot.Send(msg)
-	case tag_day:
+	/*case tag_day:
 		day, group := customers.DecomposeQuery(argument)
 		offset := Day(day)
 
@@ -517,7 +517,7 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	case "clearlabels":
 		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(update.Message.From.ID)))
 	case "delete":
-		delete(all_types.AllLabels[update.Message.From.ID].Group, argument)
+		delete(all_types.AllLabels[update.Message.From.ID].Group, argument)*/
 	case "joke", "j":
 		joke, err := jokes.GetJokes()
 		if err == nil {
@@ -553,6 +553,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/showgl - Показывает данные по подпискам\n"+
 			"/changeus <domain + id> - Изменяет подписку пользователю\n"+
 			"/activateg <domain> - Разрешает/запрещает парсинг группы\n"+
+			"/activatesend <domain> - Разрешает/запрещает рассылку группы\n"+
 			"/statg <domain> - Выводит статистику пользователей по этой группе\n"+
 			"/sendbyid <id + text> - Отправляет сообщение пользователю\n"+
 			"/statsub - Отправляет количество пользователей, подписанных на новости бота\n"+
@@ -561,8 +562,7 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/delfit <href> - Удаляет группу фита\n"+
 			"/showfit - Показывает группы\n"+
 			"/fitactiv <href> - Активирует/деактивирует раздел\n"+
-			"/fitstat <href> - Показывает статистику раздела\n"+
-			"/activatesend <domain> - Рассылка для людей"))
+			"/fitstat <href> - Показывает статистику раздела\n"))
 		return
 	case "resetallusersub":
 		if argument == "YES" {
@@ -915,12 +915,10 @@ func MainMenu() (markup tgbotapi.InlineKeyboardMarkup) {
 	markup = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Температура", tag_weather)),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Расписания", tag_schedule)),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Подписки", tag_subscriptions)),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Дополнительно", tag_options)))
+		/*tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Расписания", tag_schedule)),*/
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Подписки", tag_subscriptions)),
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Дополнительно", tag_options)))
 
 	return
 }
@@ -1081,10 +1079,10 @@ func SubscriptionsMenu(id int) (markup tgbotapi.InlineKeyboardMarkup) {
 
 func GetHelp(arg string) (text string) {
 	switch arg {
-	case "setgroup":
+	/*case "setgroup":
 		text = "Раздел управления меток находится /menu » Расписание » Управление метками."
 	case today, tomorrow:
-		text = "Достаточно в /menu выбрать пункт Расписание и далее следовать по зову сердца."
+		text = "Достаточно в /menu выбрать пункт Расписание и далее следовать по зову сердца."*/
 	case "secret":
 		text = "ACHTUNG! Использование этих команд запрещено на территории РФ. Автор ответственности не несёт, используйте на свой страх и риск. \n\n" +
 			"/joke - Показывает бородатый анекдот.\n" +
@@ -1092,9 +1090,10 @@ func GetHelp(arg string) (text string) {
 			"/creator - Используешь » ? » PROFIT!"
 	default:
 		text = "Подсказки по использованию Помощника:\n\n" +
-			"Если вы интересуетесь расписанием занятий, то вам будет удобно добавить группы в избранное (далее метки), " +
+			/*"Если вы интересуетесь расписанием занятий, то вам будет удобно добавить группы в избранное (далее метки), " +
 			"это позволит вызывать расписание без особых усилий.\n" +
-			"Раздел управления меток находится /menu » Расписание » Управление метками.\n\n" +
+			"Раздел управления меток находится /menu » Расписание » Управление метками.\n\n" +*/
+			"Расписание вернётся в сентябре, после начала учебного семестра.\n\n" +
 			"Ответы на дополнительные вопросы можно получить через /faq.\n\n" +
 			"Подписаться на новости об обвновлениях бота можно через /botnews или в /menu » Подписки"
 	}
