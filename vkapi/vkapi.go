@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ACCESS_TOKEN = "66e51a5466e51a5466e51a548666b9b588666e566e51a543fa44d238eeee69d2efd7e0b"
+	ACCESS_TOKEN   = "66e51a5466e51a5466e51a548666b9b588666e566e51a543fa44d238eeee69d2efd7e0b"
 	API_METHOD_URL = "https://api.vk.com/method/"
 	VERSION        = "5.65"
 	PHOTO          = "photo"
@@ -84,7 +84,7 @@ func GetWallJson(domain string, offset int, count int, filter string) (*Response
 		return nil, errors.New("Неверное значение фильтра")
 	}
 
-	res, err := http.Get(API_METHOD_URL + "wall.get?extended=1&domain=" + domain + "&offset=" + fmt.Sprintf("%d", offset) + "&count=" + fmt.Sprintf("%d", count) + "&filter=" + filter + "&v=" + VERSION+ "&access_token=" + ACCESS_TOKEN)
+	res, err := http.Get(API_METHOD_URL + "wall.get?extended=1&domain=" + domain + "&offset=" + fmt.Sprintf("%d", offset) + "&count=" + fmt.Sprintf("%d", count) + "&filter=" + filter + "&v=" + VERSION + "&access_token=" + ACCESS_TOKEN)
 	if err != nil {
 		return nil, err
 	}

@@ -285,12 +285,12 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 
 		bot.Send(msg)
 	/*case tag_schedule:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Расписание")
+	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Расписание")
 
-		m := UniteMarkup(ScheduleMenu(), RowButtonBack(tag_main, false))
-		msg.ReplyMarkup = &m
+	m := UniteMarkup(ScheduleMenu(), RowButtonBack(tag_main, false))
+	msg.ReplyMarkup = &m
 
-		bot.Send(msg)*/
+	bot.Send(msg)*/
 	case tag_subscriptions:
 		if argument == all_types.NewsBot {
 			subscriptions.ChangeBotSubscriptions(update.CallbackQuery.From.ID)
@@ -916,7 +916,7 @@ func MainMenu() (markup tgbotapi.InlineKeyboardMarkup) {
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Температура", tag_weather)),
 		/*tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Расписания", tag_schedule)),*/
+		tgbotapi.NewInlineKeyboardButtonData("Расписания", tag_schedule)),*/
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Подписки", tag_subscriptions)),
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Дополнительно", tag_options)))
 
