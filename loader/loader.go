@@ -157,7 +157,9 @@ func RefreshUserInfo(bot *tgbotapi.BotAPI, user tgbotapi.User) {
 
 	var u all_types.UserInfo
 
-	u.TimeCreate = timeNow
+	if !ok {
+		u.TimeCreate = timeNow
+	}
 	u.TimeLastAction = timeNow
 	u.FirstName = user.FirstName
 	u.LastName = user.LastName

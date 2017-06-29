@@ -54,7 +54,24 @@ const (
 	faq                    = "faq"
 	help                   = "help"
 	feedback               = "feedback"
+	vote                   = "vote"
+	voteYes                = "yes"
+	voteNo                 = "no"
+	voteFit                = "fit"
 )
+
+type Vote struct {
+	UserId int
+
+	// 0 - Not voted
+	// 1 - Yes
+	// -1 - No
+	// 2... Other
+	Answer int
+	Text   string
+}
+
+var voteArray []Vote
 
 var FlagToRunner = true
 
@@ -92,6 +109,37 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 	}*/
 
 	switch command {
+	case vote:
+		u, ok := all_types.AllUsersInfo[update.CallbackQuery.From.ID]
+		if ok {
+			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Вердикт: "+argument+"\n"+u.String()))
+		} else {
+			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Пользователь: "+argument+"\n\nСтранный юзер "+fmt.Sprint(update.Message.From.ID)))
+		}
+
+		switch argument {
+		case voteYes:
+			voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, 1, ""})
+		case voteNo:
+			voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, -1, ""})
+		case voteFit:
+			voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, 2, ""})
+		default:
+			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Опрос уже окончен.")
+
+			m := UniteMarkup(RowButtonBack(tag_main, false))
+			msg.ReplyMarkup = &m
+			return nil
+		}
+
+		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Спасибо за участие в опросе")
+		m := UniteMarkup(RowButtonBack(tag_main, false))
+		msg.ReplyMarkup = &m
+
+		_, err := bot.Send(msg)
+		if err != nil {
+			all_types.Logger.Println(update.Message.From.ID, err)
+		}
 	case tag_fit:
 		var m tgbotapi.InlineKeyboardMarkup
 
@@ -562,8 +610,93 @@ func adminMessage(bot *tgbotapi.BotAPI, where int64, command string, argument st
 			"/delfit <href> - Удаляет группу фита\n"+
 			"/showfit - Показывает группы\n"+
 			"/fitactiv <href> - Активирует/деактивирует раздел\n"+
-			"/fitstat <href> - Показывает статистику раздела\n"))
+			"/fitstat <href> - Показывает статистику раздела\n\n"+
+			"/showVoteStat < _ | all > - Показывает стату голосования\n"))
 		return
+	case "startVote":
+		all_types.Logger.Print("Начинаю опрос")
+
+		for i := range all_types.AllUsersInfo {
+			m := tgbotapi.NewMessage(int64(i), "Опрос:\n<b>Хотели бы вы получать новости с сайта своего факультета?</b>")
+			m.ReplyMarkup = VoteMenu()
+			m.ParseMode = "HTML"
+
+			_, err := bot.Send(m)
+			if err != nil {
+				all_types.Logger.Print("Что-то пошло не так при рассылке ["+fmt.Sprint(i)+"]", err)
+			}
+		}
+	case "showVoteStat":
+		if len(voteArray) == 0 {
+			bot.Send(tgbotapi.NewMessage(where, "Ещё никто не проголосовал"))
+			return
+		}
+
+		if argument != "all" {
+			var yes, no, fit int
+			for _, v := range voteArray {
+				switch v.Answer {
+				case 1:
+					yes++
+				case -1:
+					no++
+				case 2:
+					fit++
+				}
+			}
+
+			all := 50
+			var yesStr, noStr, fitStr string
+			for i := 0; i < yes*all/(fit+yes+no); i++ {
+				yesStr += "*"
+			}
+			for i := 0; i < no*all/(fit+yes+no); i++ {
+				noStr += "*"
+			}
+			for i := 0; i < fit*all/(fit+yes+no); i++ {
+				fitStr += "*"
+			}
+
+			m := tgbotapi.NewMessage(where, "Опрос:\nВсего: "+fmt.Sprint(yes+no+fit)+"\n"+
+				"Yes: "+fmt.Sprint(yes)+"\n"+yesStr+"\n"+
+				"No: "+fmt.Sprint(no)+"\n"+noStr+"\n"+
+				"Fit: "+fmt.Sprint(fit)+"\n"+fitStr+"\n")
+
+			_, err := bot.Send(m)
+			if err != nil {
+				all_types.Logger.Print("Что-то пошло не так при рассылке мне", err)
+			}
+		} else {
+			var message string
+			for i, v := range voteArray {
+				u, ok := all_types.AllUsersInfo[v.UserId]
+				if !ok {
+					all_types.Logger.Println("Не робит голос ", v.UserId)
+					continue
+				}
+
+				message += u.String() + "\nГолос: "
+				switch v.Answer {
+				case 1:
+					message += "yes"
+				case -1:
+					message += "no"
+				case 2:
+					message += "fit"
+				}
+
+				message += "\n\n"
+
+				if ((i + 1) % 15) == 0 {
+					bot.Send(tgbotapi.NewMessage(where, message))
+					message = ""
+				}
+			}
+
+			if message != "" {
+				bot.Send(tgbotapi.NewMessage(where, message))
+			}
+		}
 	case "resetallusersub":
 		if argument == "YES" {
 			for _, u := range all_types.AllUsersInfo {
@@ -878,6 +1011,17 @@ func UniteMarkup(markups ...tgbotapi.InlineKeyboardMarkup) (markup tgbotapi.Inli
 		}
 	}
 
+	return
+}
+
+func VoteMenu() (markup tgbotapi.InlineKeyboardMarkup) {
+	markup = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Да", vote+" "+voteYes)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Нет", vote+" "+voteNo)),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Я с ФИТа, уже работает", vote+" "+voteFit)))
 	return
 }
 
