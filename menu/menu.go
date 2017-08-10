@@ -3,7 +3,6 @@ package menu
 import (
 	"TelegramBot/all_types"
 	"TelegramBot/customers"
-	"TelegramBot/jokes"
 	"TelegramBot/loader"
 	/*"TelegramBot/schedule"*/
 	"TelegramBot/subscriptions"
@@ -27,6 +26,10 @@ type queueType struct {
 const (
 	BackButtonText = "« Назад"
 	MainButtonText = "« В начало"
+)
+
+const (
+	AHTUNG = "Эта версия является устаревшей, просьба перейти на t.me/nsu_helper_bot для продолжения использования Помощника."
 )
 
 const (
@@ -103,282 +106,282 @@ func ProcessingCallback(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error
 	command, argument := customers.DecomposeQuery(update.CallbackQuery.Data)
 
 	all_types.Logger.Print("[", update.CallbackQuery.From.ID, "] @"+update.CallbackQuery.From.UserName+" "+update.CallbackQuery.From.FirstName+" "+update.CallbackQuery.From.LastName+", MessageID: ", update.CallbackQuery.Message.MessageID, ", Запрос: "+command+" | "+argument)
-
+	bot.Send(tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, AHTUNG))
 	/*if loader.ReloadUserDate(bot, *update.CallbackQuery.From) != nil {
 		all_types.Logger.Print("Не удалось найти пользователя")
 	}*/
 
-	switch command {
-	case vote:
-		u, ok := all_types.AllUsersInfo[update.CallbackQuery.From.ID]
-		if ok {
-			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Вердикт: "+argument+"\n"+u.String()))
-		} else {
-			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Пользователь: "+argument+"\n\nСтранный юзер "+fmt.Sprint(update.Message.From.ID)))
-		}
-
-		switch argument {
-		case voteYes:
-			voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, 1, ""})
-		case voteNo:
-			voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, -1, ""})
-		case voteFit:
-			voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, 2, ""})
-		default:
-			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Опрос уже окончен.")
-
-			m := UniteMarkup(RowButtonBack(tag_main, false))
-			msg.ReplyMarkup = &m
-			return nil
-		}
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Спасибо за участие в опросе")
-		m := UniteMarkup(RowButtonBack(tag_main, false))
-		msg.ReplyMarkup = &m
-
-		_, err := bot.Send(msg)
-		if err != nil {
-			all_types.Logger.Println(update.Message.From.ID, err)
-		}
-	case tag_fit:
-		var m tgbotapi.InlineKeyboardMarkup
-
-		if argument != "" {
-			firstPar, secondPar := customers.DecomposeQuery(argument)
-			if firstPar == all_types.News_chairs {
-				if secondPar != "" {
-					subscriptions.ChangeUserFit(firstPar+secondPar, update.CallbackQuery.From.ID)
-				}
-
-				m = UniteMarkup(ChairsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_fit, true))
-			} else {
-				subscriptions.ChangeUserFit(argument, update.CallbackQuery.From.ID)
-
-				m = UniteMarkup(FitMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
-			}
-		} else {
-			m = UniteMarkup(FitMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
-		}
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на раздел, если хотите подписаться на рассылку")
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-		return
-	case tag_keyboard:
-		text := "Не удалось активировать квалиатуру, попробуйте чуть позже."
-		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
-
-		markup, err := MainKeyboard()
-		if err == nil {
-			msg.Text = "Клавиатура активирована."
-			msg.ReplyMarkup = markup
-		}
-
-		bot.Send(msg)
-	case tag_support:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Поддержка")
-
-		m := UniteMarkup(SupportMenu(), RowButtonBack(tag_options, true))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case help:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, GetHelp(""))
-
-		m := UniteMarkup(RowButtonBack(tag_support, true))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case feedback:
-		queue[update.CallbackQuery.From.ID] = queueType{feedback, "", ""}
-
-		bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Наберите свой отзыв:"))
-	case faq:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, FaqText())
-
-		m := RowButtonBack(tag_support, true)
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case tag_user_subscriptions:
-		if argument != "" {
-			subscriptions.ChangeGroupByDomain(argument, update.CallbackQuery.From.ID)
-		}
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
-
-		m := UniteMarkup(VkGroupMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case all_types.NsuFit:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Скоро")
-
-		m := RowButtonBack(tag_subscriptions, true)
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	/*case tag_labels:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Управление метками")
-		m := UniteMarkup(LabelsMenu(), RowButtonBack(tag_schedule, true))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case tag_delete:
-		text, markup := StartDeleteLabel(argument, update.CallbackQuery.From.ID)
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
-
-		msg.ReplyMarkup = &markup
-
-		bot.Send(msg)
-	case tag_clear_labels:
-		text := customers.DeleteUserLabels(update.CallbackQuery.From.ID)
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
-		m := UniteMarkup(LabelsMenu(), RowButtonBack(tag_schedule, true))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case tag_show_labels:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, customers.PrintUserLabels(update.CallbackQuery.From.ID))
-		m := RowButtonBack(tag_labels, true)
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case tag_schedule_day:
-		g := ShowLabelsButton(tag_day+" "+argument+" ", update.CallbackQuery.From.ID)
-		if len(g.InlineKeyboard) == 0 {
-			g = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить метку", set_different_group+" "+tag_schedule_day+" "+argument)))
-		}
-
-		markup := UniteMarkup(g, tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Ввести другой номер", different_day+" "+argument))),
-			RowButtonBack(tag_schedule+" "+argument, true))
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Выберите группу")
-		msg.ReplyMarkup = &markup
-
-		bot.Send(msg)
-		return
-	case tag_day:
-		day, group := customers.DecomposeQuery(argument)
-		offset := Day(day)
-
-		text, _ := schedule.PrintSchedule(group, offset, update.CallbackQuery.From.ID, false)
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
-		m := RowButtonBack(tag_schedule_day+" "+day, true)
-
-		msg.ReplyMarkup = &m
-		msg.ParseMode = "HTML"
-		bot.Send(msg)
-	case different_day:
-		queue[update.CallbackQuery.From.ID] = queueType{tag_day, argument + " ", ""}
-
-		bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Введите номер группы"))
-	case tag_week:
-		g, ok := all_types.AllLabels[update.CallbackQuery.From.ID]
-		if !ok || g.MyGroup == "" {
-			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Вы не указали свою группу")
-			m := UniteMarkup(tgbotapi.NewInlineKeyboardMarkup(
-				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить метку", set_different_group+" "+tag_schedule))),
-				RowButtonBack(tag_schedule, true))
-
-			msg.ReplyMarkup = &m
-
-			bot.Send(msg)
-			return
-		}
-
-		var msg tgbotapi.MessageConfig
-
-		days := schedule.GetWeek(g.MyGroup)
-		if len(days) > 0 {
-			for i := 0; i < 6; i++ {
-				m := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, days[i])
-				m.ParseMode = "HTML"
-				bot.Send(m)
-			}
-
-			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Готово")
-		} else {
-			msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Произошла ошибка, сообщите об этом мне /feedback, если ошибка появляется")
-			bot.Send(tgbotapi.NewMessage(all_types.MyId, "Проблема с расписанием на неделю у группы "+g.MyGroup))
-		}
-
-		m := UniteMarkup(WeekMenu(), RowButtonBack(tag_schedule, true))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-		return*/
-	case tag_main:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Главное меню")
-
-		m := MainMenu()
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case tag_options:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Дополнительные функции")
-
-		m := UniteMarkup(OptionsMenu(), RowButtonBack(tag_main, false))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	case tag_weather:
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, weather.CurrentWeather)
-
-		m := RowButtonBack(tag_main, false)
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	/*case tag_schedule:
-	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Расписание")
-
-	m := UniteMarkup(ScheduleMenu(), RowButtonBack(tag_main, false))
-	msg.ReplyMarkup = &m
-
-	bot.Send(msg)*/
-	case tag_subscriptions:
-		if argument == all_types.NewsBot {
-			subscriptions.ChangeBotSubscriptions(update.CallbackQuery.From.ID)
-		}
-
-		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
-
-		m := UniteMarkup(SubscriptionsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_main, false))
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	/*case set_new_group:
-		text, markup := AddNewGroup(argument, tag_labels, update.CallbackQuery.From.ID, "")
-		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
-
-		if len(markup.InlineKeyboard) > 0 {
-			msg.ReplyMarkup = markup
-		}
-
-		bot.Send(msg)
-	case set_different_group:
-		text, markup := AddNewGroup("", argument, update.CallbackQuery.From.ID, "Введите номер своей группы")
-		msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
-
-		if len(markup.InlineKeyboard) > 0 {
-			msg.ReplyMarkup = markup
-		}
-
-		bot.Send(msg)*/
-	default:
-		msg := tgbotapi.NewEditMessageText(
-			update.CallbackQuery.Message.Chat.ID,
-			update.CallbackQuery.Message.MessageID,
-			"Упс! Произошла ошибка, попробуйсте повторить операцию.")
-
-		m := MainMenu()
-		msg.ReplyMarkup = &m
-
-		bot.Send(msg)
-	}
+	//switch command {
+	//case vote:
+	//	u, ok := all_types.AllUsersInfo[update.CallbackQuery.From.ID]
+	//	if ok {
+	//		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Вердикт: "+argument+"\n"+u.String()))
+	//	} else {
+	//		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Пользователь: "+argument+"\n\nСтранный юзер "+fmt.Sprint(update.Message.From.ID)))
+	//	}
+	//
+	//	switch argument {
+	//	case voteYes:
+	//		voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, 1, ""})
+	//	case voteNo:
+	//		voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, -1, ""})
+	//	case voteFit:
+	//		voteArray = append(voteArray, Vote{update.CallbackQuery.From.ID, 2, ""})
+	//	default:
+	//		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Опрос уже окончен.")
+	//
+	//		m := UniteMarkup(RowButtonBack(tag_main, false))
+	//		msg.ReplyMarkup = &m
+	//		return nil
+	//	}
+	//
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Спасибо за участие в опросе")
+	//	m := UniteMarkup(RowButtonBack(tag_main, false))
+	//	msg.ReplyMarkup = &m
+	//
+	//	_, err := bot.Send(msg)
+	//	if err != nil {
+	//		all_types.Logger.Println(update.Message.From.ID, err)
+	//	}
+	//case tag_fit:
+	//	var m tgbotapi.InlineKeyboardMarkup
+	//
+	//	if argument != "" {
+	//		firstPar, secondPar := customers.DecomposeQuery(argument)
+	//		if firstPar == all_types.News_chairs {
+	//			if secondPar != "" {
+	//				subscriptions.ChangeUserFit(firstPar+secondPar, update.CallbackQuery.From.ID)
+	//			}
+	//
+	//			m = UniteMarkup(ChairsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_fit, true))
+	//		} else {
+	//			subscriptions.ChangeUserFit(argument, update.CallbackQuery.From.ID)
+	//
+	//			m = UniteMarkup(FitMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
+	//		}
+	//	} else {
+	//		m = UniteMarkup(FitMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
+	//	}
+	//
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на раздел, если хотите подписаться на рассылку")
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//	return
+	//case tag_keyboard:
+	//	text := "Не удалось активировать квалиатуру, попробуйте чуть позже."
+	//	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
+	//
+	//	markup, err := MainKeyboard()
+	//	if err == nil {
+	//		msg.Text = "Клавиатура активирована."
+	//		msg.ReplyMarkup = markup
+	//	}
+	//
+	//	bot.Send(msg)
+	//case tag_support:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Поддержка")
+	//
+	//	m := UniteMarkup(SupportMenu(), RowButtonBack(tag_options, true))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case help:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, GetHelp(""))
+	//
+	//	m := UniteMarkup(RowButtonBack(tag_support, true))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case feedback:
+	//	queue[update.CallbackQuery.From.ID] = queueType{feedback, "", ""}
+	//
+	//	bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Наберите свой отзыв:"))
+	//case faq:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, FaqText())
+	//
+	//	m := RowButtonBack(tag_support, true)
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case tag_user_subscriptions:
+	//	if argument != "" {
+	//		subscriptions.ChangeGroupByDomain(argument, update.CallbackQuery.From.ID)
+	//	}
+	//
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
+	//
+	//	m := UniteMarkup(VkGroupMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_subscriptions, true))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case all_types.NsuFit:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Скоро")
+	//
+	//	m := RowButtonBack(tag_subscriptions, true)
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	///*case tag_labels:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Управление метками")
+	//	m := UniteMarkup(LabelsMenu(), RowButtonBack(tag_schedule, true))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case tag_delete:
+	//	text, markup := StartDeleteLabel(argument, update.CallbackQuery.From.ID)
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
+	//
+	//	msg.ReplyMarkup = &markup
+	//
+	//	bot.Send(msg)
+	//case tag_clear_labels:
+	//	text := customers.DeleteUserLabels(update.CallbackQuery.From.ID)
+	//
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
+	//	m := UniteMarkup(LabelsMenu(), RowButtonBack(tag_schedule, true))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case tag_show_labels:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, customers.PrintUserLabels(update.CallbackQuery.From.ID))
+	//	m := RowButtonBack(tag_labels, true)
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case tag_schedule_day:
+	//	g := ShowLabelsButton(tag_day+" "+argument+" ", update.CallbackQuery.From.ID)
+	//	if len(g.InlineKeyboard) == 0 {
+	//		g = tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить метку", set_different_group+" "+tag_schedule_day+" "+argument)))
+	//	}
+	//
+	//	markup := UniteMarkup(g, tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Ввести другой номер", different_day+" "+argument))),
+	//		RowButtonBack(tag_schedule+" "+argument, true))
+	//
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Выберите группу")
+	//	msg.ReplyMarkup = &markup
+	//
+	//	bot.Send(msg)
+	//	return
+	//case tag_day:
+	//	day, group := customers.DecomposeQuery(argument)
+	//	offset := Day(day)
+	//
+	//	text, _ := schedule.PrintSchedule(group, offset, update.CallbackQuery.From.ID, false)
+	//
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, text)
+	//	m := RowButtonBack(tag_schedule_day+" "+day, true)
+	//
+	//	msg.ReplyMarkup = &m
+	//	msg.ParseMode = "HTML"
+	//	bot.Send(msg)
+	//case different_day:
+	//	queue[update.CallbackQuery.From.ID] = queueType{tag_day, argument + " ", ""}
+	//
+	//	bot.Send(tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Введите номер группы"))
+	//case tag_week:
+	//	g, ok := all_types.AllLabels[update.CallbackQuery.From.ID]
+	//	if !ok || g.MyGroup == "" {
+	//		msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Вы не указали свою группу")
+	//		m := UniteMarkup(tgbotapi.NewInlineKeyboardMarkup(
+	//			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Добавить метку", set_different_group+" "+tag_schedule))),
+	//			RowButtonBack(tag_schedule, true))
+	//
+	//		msg.ReplyMarkup = &m
+	//
+	//		bot.Send(msg)
+	//		return
+	//	}
+	//
+	//	var msg tgbotapi.MessageConfig
+	//
+	//	days := schedule.GetWeek(g.MyGroup)
+	//	if len(days) > 0 {
+	//		for i := 0; i < 6; i++ {
+	//			m := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, days[i])
+	//			m.ParseMode = "HTML"
+	//			bot.Send(m)
+	//		}
+	//
+	//		msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Готово")
+	//	} else {
+	//		msg = tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "Произошла ошибка, сообщите об этом мне /feedback, если ошибка появляется")
+	//		bot.Send(tgbotapi.NewMessage(all_types.MyId, "Проблема с расписанием на неделю у группы "+g.MyGroup))
+	//	}
+	//
+	//	m := UniteMarkup(WeekMenu(), RowButtonBack(tag_schedule, true))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//	return*/
+	//case tag_main:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Главное меню")
+	//
+	//	m := MainMenu()
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case tag_options:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Дополнительные функции")
+	//
+	//	m := UniteMarkup(OptionsMenu(), RowButtonBack(tag_main, false))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//case tag_weather:
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, weather.CurrentWeather)
+	//
+	//	m := RowButtonBack(tag_main, false)
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	///*case tag_schedule:
+	//msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Расписание")
+	//
+	//m := UniteMarkup(ScheduleMenu(), RowButtonBack(tag_main, false))
+	//msg.ReplyMarkup = &m
+	//
+	//bot.Send(msg)*/
+	//case tag_subscriptions:
+	//	if argument == all_types.NewsBot {
+	//		subscriptions.ChangeBotSubscriptions(update.CallbackQuery.From.ID)
+	//	}
+	//
+	//	msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID, "Нажмите на группу, если хотите подписаться на рассылку")
+	//
+	//	m := UniteMarkup(SubscriptionsMenu(update.CallbackQuery.From.ID), RowButtonBack(tag_main, false))
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	///*case set_new_group:
+	//	text, markup := AddNewGroup(argument, tag_labels, update.CallbackQuery.From.ID, "")
+	//	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
+	//
+	//	if len(markup.InlineKeyboard) > 0 {
+	//		msg.ReplyMarkup = markup
+	//	}
+	//
+	//	bot.Send(msg)
+	//case set_different_group:
+	//	text, markup := AddNewGroup("", argument, update.CallbackQuery.From.ID, "Введите номер своей группы")
+	//	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, text)
+	//
+	//	if len(markup.InlineKeyboard) > 0 {
+	//		msg.ReplyMarkup = markup
+	//	}
+	//
+	//	bot.Send(msg)*/
+	//default:
+	//	msg := tgbotapi.NewEditMessageText(
+	//		update.CallbackQuery.Message.Chat.ID,
+	//		update.CallbackQuery.Message.MessageID,
+	//		"Упс! Произошла ошибка, попробуйсте повторить операцию.")
+	//
+	//	m := MainMenu()
+	//	msg.ReplyMarkup = &m
+	//
+	//	bot.Send(msg)
+	//}
 
 	return
 }
@@ -472,109 +475,109 @@ func ProcessingMessage(bot *tgbotapi.BotAPI, update tgbotapi.Update) (err error)
 	}*/
 
 	queue[update.Message.From.ID] = queueType{"", "", ""}
-
-	switch command {
-	case "cansel":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Отменил все свои дела.\nZzzz..."))
-		return
-	case feedback:
-		if argument != "" {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за отзыв!")
-
-			msg.ReplyMarkup = RowButtonBack(tag_support, true)
-			bot.Send(msg)
-
-			bot.Send(tgbotapi.NewMessage(all_types.MyId, argument+"\n\nОтзыв от: ["+fmt.Sprint(update.Message.From.ID)+"]\n@"+update.Message.From.UserName+"\n"+update.Message.From.LastName+" "+update.Message.From.FirstName))
-
-			return
-		}
-
-		queue[update.Message.From.ID] = queueType{feedback, "", ""}
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Наберите свой отзыв:"))
-
-		return
-	case "botnews":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeBotSubscriptions(update.Message.From.ID)))
-	case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
-	case "weather":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather))
-	case "start":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
-			"Привет!\n\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, "+
-				"чтобы было проще возвращаться к меню.\n\n"+
-				"Ещё есть полезные советы /help и /faq.\n\n")
-
-		msg.ReplyMarkup = MainMenu()
-
-		bot.Send(msg)
-	case "help", "h":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, GetHelp(argument)))
-	case "keyboard", "k":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-
-		if argument == "off" {
-			msg.Text = "Клавиатура отключена."
-			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
-		} else {
-			markup, err := MainKeyboard()
-			if err == nil {
-				msg.Text = "Клавиатура активирована."
-				msg.ReplyMarkup = markup
-			} else {
-				msg.Text = "Не удалось активировать квалиатуру, попробуйсте чуть позже."
-			}
-		}
-
-		bot.Send(msg)
-	case "Меню", "menu":
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Главное меню")
-		msg.ReplyMarkup = MainMenu()
-
-		bot.Send(msg)
-	/*case tag_day:
-		day, group := customers.DecomposeQuery(argument)
-		offset := Day(day)
-
-		text, ok := schedule.PrintSchedule(group, offset, update.Message.From.ID, true)
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-		msg.ParseMode = "HTML"
-		if !ok {
-			queue[update.Message.From.ID] = queueType{tag_day, day + " ", ""}
-		} else {
-			msg.ReplyMarkup = RowButtonBack(tag_schedule_day+" "+day, true)
-		}
-
-		bot.Send(msg)
-	case set_new_group:
-		if button == "" {
-			button = tag_labels
-		}
-
-		text, markup := AddNewGroup(argument, button, update.Message.From.ID, "")
-
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
-
-		if len(markup.InlineKeyboard) > 0 {
-			msg.ReplyMarkup = markup
-		}
-
-		bot.Send(msg)
-	case "labels":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(update.Message.From.ID)))
-	case "clearlabels":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(update.Message.From.ID)))
-	case "delete":
-		delete(all_types.AllLabels[update.Message.From.ID].Group, argument)*/
-	case "joke", "j":
-		joke, err := jokes.GetJokes()
-		if err == nil {
-			bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, joke))
-		}
-	case "faq":
-		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, FaqText()))
-		return
-	}
+	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, AHTUNG))
+	//switch command {
+	//case "cansel":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Отменил все свои дела.\nZzzz..."))
+	//	return
+	//case feedback:
+	//	if argument != "" {
+	//		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Спасибо за отзыв!")
+	//
+	//		msg.ReplyMarkup = RowButtonBack(tag_support, true)
+	//		bot.Send(msg)
+	//
+	//		bot.Send(tgbotapi.NewMessage(all_types.MyId, argument+"\n\nОтзыв от: ["+fmt.Sprint(update.Message.From.ID)+"]\n@"+update.Message.From.UserName+"\n"+update.Message.From.LastName+" "+update.Message.From.FirstName))
+	//
+	//		return
+	//	}
+	//
+	//	queue[update.Message.From.ID] = queueType{feedback, "", ""}
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Наберите свой отзыв:"))
+	//
+	//	return
+	//case "botnews":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, subscriptions.ChangeBotSubscriptions(update.Message.From.ID)))
+	//case "creator", "maker", "author", "father", "Creator", "Maker", "Author", "Father":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, "Я в телеграм: @Dimonchik0036\nЯ на GitHub: github.com/dimonchik0036\nЯ в VK: vk.com/dimonchik0036"))
+	//case "weather":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, weather.CurrentWeather))
+	//case "start":
+	//	msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+	//		"Привет!\n\nЯ - твой помощник, сейчас я покажу тебе, что могу. Советую сразу включить /keyboard, "+
+	//			"чтобы было проще возвращаться к меню.\n\n"+
+	//			"Ещё есть полезные советы /help и /faq.\n\n")
+	//
+	//	msg.ReplyMarkup = MainMenu()
+	//
+	//	bot.Send(msg)
+	//case "help", "h":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, GetHelp(argument)))
+	//case "keyboard", "k":
+	//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	//
+	//	if argument == "off" {
+	//		msg.Text = "Клавиатура отключена."
+	//		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(false)
+	//	} else {
+	//		markup, err := MainKeyboard()
+	//		if err == nil {
+	//			msg.Text = "Клавиатура активирована."
+	//			msg.ReplyMarkup = markup
+	//		} else {
+	//			msg.Text = "Не удалось активировать квалиатуру, попробуйсте чуть позже."
+	//		}
+	//	}
+	//
+	//	bot.Send(msg)
+	//case "Меню", "menu":
+	//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Главное меню")
+	//	msg.ReplyMarkup = MainMenu()
+	//
+	//	bot.Send(msg)
+	///*case tag_day:
+	//	day, group := customers.DecomposeQuery(argument)
+	//	offset := Day(day)
+	//
+	//	text, ok := schedule.PrintSchedule(group, offset, update.Message.From.ID, true)
+	//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+	//	msg.ParseMode = "HTML"
+	//	if !ok {
+	//		queue[update.Message.From.ID] = queueType{tag_day, day + " ", ""}
+	//	} else {
+	//		msg.ReplyMarkup = RowButtonBack(tag_schedule_day+" "+day, true)
+	//	}
+	//
+	//	bot.Send(msg)
+	//case set_new_group:
+	//	if button == "" {
+	//		button = tag_labels
+	//	}
+	//
+	//	text, markup := AddNewGroup(argument, button, update.Message.From.ID, "")
+	//
+	//	msg := tgbotapi.NewMessage(update.Message.Chat.ID, text)
+	//
+	//	if len(markup.InlineKeyboard) > 0 {
+	//		msg.ReplyMarkup = markup
+	//	}
+	//
+	//	bot.Send(msg)
+	//case "labels":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.PrintUserLabels(update.Message.From.ID)))
+	//case "clearlabels":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, customers.DeleteUserLabels(update.Message.From.ID)))
+	//case "delete":
+	//	delete(all_types.AllLabels[update.Message.From.ID].Group, argument)*/
+	//case "joke", "j":
+	//	joke, err := jokes.GetJokes()
+	//	if err == nil {
+	//		bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, joke))
+	//	}
+	//case "faq":
+	//	bot.Send(tgbotapi.NewMessage(update.Message.Chat.ID, FaqText()))
+	//	return
+	//}
 
 	if update.Message.From.ID == all_types.MyId {
 		adminMessage(bot, update.Message.Chat.ID, command, argument)

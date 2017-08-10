@@ -6,7 +6,6 @@ import (
 	"TelegramBot/loader"
 	"TelegramBot/menu"
 	"TelegramBot/subscriptions"
-	"TelegramBot/weather"
 	"fmt"
 	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
@@ -60,16 +59,16 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 		}
 	}()*/
 
-	go func() {
-		for {
-			err := weather.SearchWeather()
-			if err != nil {
-				all_types.Logger.Print(err)
-			}
-
-			time.Sleep(2 * time.Minute)
-		}
-	}()
+	//go func() {
+	//	for {
+	//		err := weather.SearchWeather()
+	//		if err != nil {
+	//			all_types.Logger.Print(err)
+	//		}
+	//
+	//		time.Sleep(2 * time.Minute)
+	//	}
+	//}()
 
 	err = loader.LoadUsersInfo()
 	if err != nil {
@@ -91,39 +90,39 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 		all_types.Logger.Print(err)
 	}*/
 
-	err = loader.LoadUsersSubscriptions()
-	if err != nil {
-		all_types.Logger.Print(err)
-	}
-
-	err = subscriptions.LoadFitNsuFile()
-	if err != nil {
-		all_types.Logger.Print(err)
-	}
+	//err = loader.LoadUsersSubscriptions()
+	//if err != nil {
+	//	all_types.Logger.Print(err)
+	//}
+	//
+	//err = subscriptions.LoadFitNsuFile()
+	//if err != nil {
+	//	all_types.Logger.Print(err)
+	//}
 
 	_, err = bot.Send(tgbotapi.NewMessage(all_types.MyId, "Я перезагрузился."))
 	if err != nil {
 		all_types.Logger.Print("Не смог отправить весточку повелителю.", err)
 	}
 
-	CheckDefaultGroup(bot, all_types.NsuHelp)
-	CheckDefaultGroup(bot, all_types.NsuSecret)
-	CheckDefaultGroup(bot, all_types.NsuLove)
-	CheckDefaultGroup(bot, all_types.Nsu24)
-	CheckDefaultGroup(bot, all_types.NsuTypical)
-
-	CheckDefaultFit(bot, all_types.News_announc, "Объявления")
-	CheckDefaultFit(bot, all_types.News_konf, "Конференции")
-	CheckDefaultFit(bot, all_types.News_news, "События")
-	CheckDefaultFit(bot, all_types.News_conc, "Конкурсы")
-
-	CheckDefaultFit(bot, all_types.News_admin_prikazy, "Административные приказы")
-
-	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_anksi, "Кафедра систем информатики")
-	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_ankks, "Кафедра компьютерных систем")
-	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_koinews, "Кафедра общей информатики")
-	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_kpvnews, "Кафедра параллельных вычислений")
-	CheckDefaultFit(bot, all_types.News_chairs+all_types.News_kktnews, "Кафедра компьютерных технологий")
+	//CheckDefaultGroup(bot, all_types.NsuHelp)
+	//CheckDefaultGroup(bot, all_types.NsuSecret)
+	//CheckDefaultGroup(bot, all_types.NsuLove)
+	//CheckDefaultGroup(bot, all_types.Nsu24)
+	//CheckDefaultGroup(bot, all_types.NsuTypical)
+	//
+	//CheckDefaultFit(bot, all_types.News_announc, "Объявления")
+	//CheckDefaultFit(bot, all_types.News_konf, "Конференции")
+	//CheckDefaultFit(bot, all_types.News_news, "События")
+	//CheckDefaultFit(bot, all_types.News_conc, "Конкурсы")
+	//
+	//CheckDefaultFit(bot, all_types.News_admin_prikazy, "Административные приказы")
+	//
+	//CheckDefaultFit(bot, all_types.News_chairs+all_types.News_anksi, "Кафедра систем информатики")
+	//CheckDefaultFit(bot, all_types.News_chairs+all_types.News_ankks, "Кафедра компьютерных систем")
+	//CheckDefaultFit(bot, all_types.News_chairs+all_types.News_koinews, "Кафедра общей информатики")
+	//CheckDefaultFit(bot, all_types.News_chairs+all_types.News_kpvnews, "Кафедра параллельных вычислений")
+	//CheckDefaultFit(bot, all_types.News_chairs+all_types.News_kktnews, "Кафедра компьютерных технологий")
 
 	go func() {
 		for {
@@ -143,89 +142,89 @@ func loadAll() (bot *tgbotapi.BotAPI) {
 				all_types.Logger.Print(err)
 			}*/
 
-			err = loader.UpdateUserSubscriptions()
-			if err != nil {
-				all_types.Logger.Print(err)
-			}
+			//err = loader.UpdateUserSubscriptions()
+			//if err != nil {
+			//	all_types.Logger.Print(err)
+			//}
 
-			err = subscriptions.RefreshFitNsuFile()
-			if err != nil {
-				all_types.Logger.Print(err)
-			}
+			//err = subscriptions.RefreshFitNsuFile()
+			//if err != nil {
+			//	all_types.Logger.Print(err)
+			//}
 		}
 	}()
 
-	go func() {
-		for {
-			for _, v := range all_types.AllSubscription {
-				if !v.IsActive {
-					continue
-				}
-
-				m, err := v.GetAndRefreshLastPosts()
-				if err != nil {
-					all_types.Logger.Print("vk error: ", err)
-					continue
-				}
-
-				if len(m) > 0 {
-					if v.IsReady {
-						for i, ok := range v.UserSubscriptions {
-							if ok != 0 {
-								for _, post := range m {
-									if len(post) > 4500 {
-										post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
-									}
-
-									bot.Send(tgbotapi.NewMessage(int64(i), v.Name+"\n"+post))
-								}
-							}
-						}
-					} else {
-						for _, post := range m {
-							if len(post) > 4500 {
-								post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
-							}
-
-							bot.Send(tgbotapi.NewMessage(all_types.MyId, v.Name+"\n"+post))
-						}
-
-						bot.Send(tgbotapi.NewMessage(all_types.MyId, "Для меня любимого"))
-					}
-				}
-
-				time.Sleep(time.Second)
-			}
-
-			for _, l := range subscriptions.FitNsuNews {
-				if !l.IsActive {
-					continue
-				}
-
-				m, err := l.GetAndRefreshLastNews()
-				if err != nil {
-					all_types.Logger.Print(err)
-					continue
-				}
-
-				if len(m) > 0 {
-					for i, ok := range l.Users {
-						if ok != 0 {
-							for _, post := range m {
-								if len(post) > 4500 {
-									post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
-								}
-
-								bot.Send(tgbotapi.NewMessage(int64(i), l.MainTitle+"\n"+post))
-							}
-						}
-					}
-				}
-			}
-
-			time.Sleep(all_types.ParseDelay)
-		}
-	}()
+	//go func() {
+	//	for {
+	//		for _, v := range all_types.AllSubscription {
+	//			if !v.IsActive {
+	//				continue
+	//			}
+	//
+	//			m, err := v.GetAndRefreshLastPosts()
+	//			if err != nil {
+	//				all_types.Logger.Print("vk error: ", err)
+	//				continue
+	//			}
+	//
+	//			if len(m) > 0 {
+	//				if v.IsReady {
+	//					for i, ok := range v.UserSubscriptions {
+	//						if ok != 0 {
+	//							for _, post := range m {
+	//								if len(post) > 4500 {
+	//									post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
+	//								}
+	//
+	//								bot.Send(tgbotapi.NewMessage(int64(i), v.Name+"\n"+post))
+	//							}
+	//						}
+	//					}
+	//				} else {
+	//					for _, post := range m {
+	//						if len(post) > 4500 {
+	//							post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
+	//						}
+	//
+	//						bot.Send(tgbotapi.NewMessage(all_types.MyId, v.Name+"\n"+post))
+	//					}
+	//
+	//					bot.Send(tgbotapi.NewMessage(all_types.MyId, "Для меня любимого"))
+	//				}
+	//			}
+	//
+	//			time.Sleep(time.Second)
+	//		}
+	//
+	//		for _, l := range subscriptions.FitNsuNews {
+	//			if !l.IsActive {
+	//				continue
+	//			}
+	//
+	//			m, err := l.GetAndRefreshLastNews()
+	//			if err != nil {
+	//				all_types.Logger.Print(err)
+	//				continue
+	//			}
+	//
+	//			if len(m) > 0 {
+	//				for i, ok := range l.Users {
+	//					if ok != 0 {
+	//						for _, post := range m {
+	//							if len(post) > 4500 {
+	//								post = post[:4500] + "...\n\nСлишком длинное сообщение, продолжение доступно по ссылке в начале сообщения."
+	//							}
+	//
+	//							bot.Send(tgbotapi.NewMessage(int64(i), l.MainTitle+"\n"+post))
+	//						}
+	//					}
+	//				}
+	//			}
+	//		}
+	//
+	//		time.Sleep(all_types.ParseDelay)
+	//	}
+	//}()
 
 	all_types.Logger.Printf("Бот %s запущен.", bot.Self.UserName)
 

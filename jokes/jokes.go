@@ -15,7 +15,7 @@ func GetJokes() (string, error) {
 		return "", err
 	}
 
-	if res.Status != "200 OK" {
+	if res.StatusCode != http.StatusOK {
 		return "", err
 	}
 

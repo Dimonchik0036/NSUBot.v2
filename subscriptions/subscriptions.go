@@ -324,10 +324,10 @@ func ParseTable(text string) (np []NewsPage, err error) {
 	Конференции /news/konf
 	Конкурсы /news/conc
 	Вакансии /news/vac
+	Административные приказы /news/administrativnye-prikazy
 	Объявления кафедры систем информатики /chairs/ksi/anksi
 	Объявления кафедры компьютерных систем /chairs/kks/ankks
 	Объявления кафедры общей информатики /chairs/koi/koinews
-	Административные приказы /news/administrativnye-prikazy
 	Объявления кафедры параллельных вычислений /chairs/kpv/kpvnews
 	Объявления кафедры компьютерных технологий /chairs/k-kt/kktnews
 */
